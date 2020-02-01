@@ -1,0 +1,12 @@
+*.log
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.synctex.gz
+*.toc
+thesis_html
+tmp
+body/*.aux
