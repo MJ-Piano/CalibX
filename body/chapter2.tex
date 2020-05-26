@@ -4,8 +4,157 @@
 \subsubsection{普通相机}
 
 \subsubsection{鱼眼相机}
-Calib-X支持的广角/鱼眼相机模型为pinhole-equidistant。该模型源自Kannala-Brandt Camera Model\cite{kannala2006generic}。
-假设$\theta$ 是入射光线和光轴的夹角，$r$是主点到像点的距离。
+Calib-X支持的广角/鱼眼相机模型为pinhole-equidistant。该模型源自Kannala-Brandt Camera Model\cite{kannala2006generic}（简称为\textbf{KB}模型）。
+\begin{enumerate}[(1)]
+	\item \textbf{KB正向模型}
+\end{enumerate}
+
+\begin{itemize}
+	\item \textbf{投影模型}
+\end{itemize}
+假设$\theta$ 是入射光线和光轴的夹角，$r$是主点到像点的距离。满足，
+\begin{equation}
+r(\theta)=k_{1} \theta+k_{2} \theta^{3}+k_{3} \theta^{5}+k_{4} \theta^{7}+k_{5} \theta^{9}+\ldots
+\end{equation}
+假设$\Phi=(\theta, \varphi)^{\top}$是用来描述入射光线的方向的向量，则
+\begin{equation}
+\mathbf{x}=
+\left(\begin{array}{l}
+x \\
+y
+\end{array}\right)=r(\theta)\left(\begin{array}{c}
+\cos \varphi \\
+\sin \varphi
+\end{array}\right)=\mathcal{F}(\Phi)
+\end{equation}
+如图\ref{kb model}所示。
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cp2/ds}
+	\caption{\textbf{KB}模型。$P$}
+	\label{kb model}
+\end{figure}
+\begin{itemize}
+	\item \textbf{畸变模型}
+\end{itemize}
+径向畸变模型，
+\begin{equation}\begin{array}{l}
+\Delta_{\mathrm{r}}(\theta, \varphi)= \\
+\left(l_{1} \theta+l_{2} \theta^{3}+l_{3} \theta^{5}\right)\left(i_{1} \cos \varphi+i_{2} \sin \varphi+i_{3} \cos 2 \varphi+i_{4} \sin 2 \varphi\right)
+\end{array}\end{equation}
+切向畸变模型，
+\begin{equation}\begin{array}{l}
+\Delta_{\mathrm{t}}(\theta, \varphi)= \\
+\left(m_{1} \theta+m_{2} \theta^{3}+m_{3} \theta^{5}\right)\left(j_{1} \cos \varphi+j_{2} \sin \varphi+j_{3} \cos 2 \varphi+j_{4} \sin 2 \varphi\right)
+\end{array}\end{equation}
+畸变模型共包含14个变量。
+\begin{itemize}
+	\item \textbf{完整模型} 
+\end{itemize}
+\begin{equation}\label{equ:equi-distort}
+\begin{aligned}
+\mathbf{x}_{\mathrm{d}}&=\mathbf{x}+\mathbf{s} \\
+&=
+r(\theta) \mathbf{u}_{r}(\varphi)+\Delta_{r}(\theta, \varphi) \mathbf{u}_{r}(\varphi)+\Delta_{t}(\theta, \varphi) \mathbf{u}_{\varphi}(\varphi) \\
+&=\mathcal{D}\left(\mathbf{x}_{\mathrm{d}}\right)
+\end{aligned}
+\end{equation}
+其中，$\mathbf{u}_{r}(\varphi)=(\cos \varphi, \sin \varphi)^{\top}$和$\mathbf{u}_{\varphi}(\varphi)$是径向和切向方向的单位向量,
+\begin{equation}\mathbf{s}=\mathcal{S}(\Phi)=\Delta_{r}(\theta, \varphi) \mathbf{u}_{r}(\varphi)+\Delta_{t}(\theta, \varphi) \mathbf{u}_{\varphi}(\varphi)\end{equation}
+像素坐标为，
+\begin{equation}\label{equ:equi-projection}
+\mathbf{m}=
+\left(\begin{array}{l}
+u \\
+v
+\end{array}\right)=
+\left[\begin{array}{cc}
+m_{u} & 0 \\
+0 & m_{v}
+\end{array}\right]
+\left(\begin{array}{l}
+x_{\mathrm{d}} \\
+y_{\mathrm{d}}
+\end{array}\right)+\left(\begin{array}{c}
+u_{0} \\
+v_{0}
+\end{array}\right)=\mathcal{A}\left(\mathrm{x}_{\mathrm{d}}\right)
+\end{equation}
+其中，$m_{u}$和$m_{v}$是水平和垂直方向单位距离包含的像素数。结合公式\ref{equ:equi-distort}和\ref{equ:equi-projection}，记完整的正向相机模型为，
+\begin{equation}
+\mathbf{m}=\mathcal{P}_{\mathrm{c}}(\Phi)=\mathcal{A} \circ \mathcal{D} \circ \mathcal{F}
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{enumerate}[(2)]
+	\item \textbf{KB反向模型}
+\end{enumerate}
+\begin{equation}
+\Phi=\mathcal{P}_{\mathrm{c}}^{-1}(\mathbf{m})
+=\mathcal{F}^{-1} \circ \mathcal{D}^{-1} \circ \mathcal{A}^{-1}
+\end{equation}
+其中，$\mathcal{F}^{-1}$和$\mathcal{A}^{-1}$比较容易得到解析解。难点在于计算$\mathcal{D}^{-1}$，即计算$\mathbf{s}$。$\mathbf{s}$在$\mathbf{x}_{\mathrm{d}}$附近用一阶泰勒近似，
+\begin{equation}\label{equ:s}
+\begin{aligned}
+\mathbf{s} & \simeq\left(\mathcal{S} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathbf{d}}\right)+\frac{\partial\left(\mathcal{S} \circ \mathcal{F}^{-1}\right)}{\partial \mathbf{x}}\left(\mathbf{x}_{\mathbf{d}}\right)\left(\mathbf{x}-\mathbf{x}_{\mathbf{d}}\right) \\
+&=\mathcal{S}\left(\Phi_{\mathrm{d}}\right)-\frac{\partial \mathcal{S}}{\partial \Phi}\left(\frac{\partial \mathcal{F}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\right)^{-1} \mathbf{s}
+\end{aligned}\end{equation}
+其中，$\Phi_{\mathrm{d}}=\mathcal{F}^{-1}\left(\mathbf{x}_{\mathrm{d}}\right)$。
+整理公式\ref{equ:s},
+\begin{equation}
+\mathcal{S}\left(\Phi_{\mathrm{d}}\right)= \left(I + \frac{\partial \mathcal{S}}{\partial \Phi}\left(\frac{\partial \mathcal{F}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\right)^{-1}\right) \mathbf{s}
+\end{equation}
+由此可得，
+\begin{equation}\mathbf{s} \simeq\left(I+\frac{\partial \mathcal{S}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\left(\frac{\partial \mathcal{F}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\right)^{-1}\right)^{-1} \mathcal{S}\left(\Phi_{\mathrm{d}}\right)\end{equation}
+因此，
+\begin{equation}\begin{array}{l}
+\mathcal{D}^{-1}\left(\mathbf{x}_{\mathrm{d}}\right) \simeq \mathbf{x}_{\mathrm{d}}- \\
+\left(I+\left(\frac{\partial \mathcal{S}}{\partial \Phi} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathrm{d}}\right)\left(\left(\frac{\partial \mathcal{F}}{\partial \Phi} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathrm{d}}\right)\right)^{-1}\right)^{-1}\left(\mathcal{S} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathrm{d}}\right)
+\end{array}\end{equation}
+\begin{enumerate}[(3)]
+	\item \textbf{CalibX中使用的pinhole-equidistant模型}
+\end{enumerate}
+CalibX中使用的pinhole-equidistant模型其实与OpenCV中使用的fish-eye模型\cite{opencvfisheye}是一样的。
+\begin{itemize}
+	\item \textbf{正向模型}
+\end{itemize}
+假设相机坐标系下的三维点$\mathbf{p}=(x,y,z)^T$, 点$\mathbf{p}$转到归一化焦平面，
+\begin{equation}
+	x'=x/z, y'=y/z
+\end{equation}
+记三维点$\mathbf{p'}=(x',y',1)^T$。对$\mathbf{p'}$加畸变,
+\begin{equation}
+\left\{
+\begin{array}{lr}
+r=\sqrt{x'*x'+y'*y'}   \\
+\theta = atan(r) \\
+d(\theta) = \theta\left(1+k_1*\theta^2+k_2*\theta^4+k_3*\theta^6+k_4*\theta^8\right) \\
+x_d = d(\theta)*x'/r, y_d = d(\theta)*y'/r  
+\end{array}
+\right.
+\end{equation}
+其中$\mathbf{p}_d=(x_d,y_d)^T$为畸变点。转化到图像坐标，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+u=f_x*x_d+c_x \\
+v=f_y*y_d+c_y 
+\end{array}
+\right.
+\end{equation}
+其中，$f_x,f_y$为焦距，$c_x,c_y$为光心。
+\begin{itemize}
+	\item \textbf{反向模型}
+\end{itemize}
+将图像坐标转到相机坐标系归一化焦平面，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+x_d=(u-c_x)/f_x \\
+y_d=(v-c_y)/f_y 
+\end{array}
+\right.
+\end{equation}
+对点$\mathbf{p}_d=(x_d,y_d)^T$去畸变，采用迭代的方式计算$\theta$
 
 \subsection{单相机标定}
 
