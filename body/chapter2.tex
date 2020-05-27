@@ -259,10 +259,35 @@ x' = r*x_d/\theta_d, y' = r*y_d/\theta_d
 	$scale = tan(\theta)/\theta_d$ \;
 	$\mathbf{p'}=\mathbf{p}_d*scale$
 \end{algorithm}
-
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{单相机标定}
+假设$\mathbf{m}_j=(X,Y,Z)^T, j=1...M$为世界坐标系下的三维点，$\mathbf{T}_i=\{\mathbf{R}_i,\mathbf{t}_i\}$为$i$时刻世界坐标系到相机坐标系的转换矩阵，$\mathbf{m}_{ij}$为特征点$\mathbf{m}_j$在$i$时刻的观测， $\mathbf{K}$为相机内参矩阵。相机标定通过最小化重投影误差来实现。首先，将点$\mathbf{m}_j$转到相机坐标系，
+\begin{equation}
+	\mathbf{p}_j = \mathbf{R}_i*\mathbf{m}_j+\mathbf{t}_i
+\end{equation}
+利用相机的正向模型，得到点$\mathbf{p}_j$在$i$时刻的观测，即图像坐标，
+\begin{equation}
+	\hat{\mathbf{m}}_{ij} = \pi(\mathbf{R}_i,\mathbf{t}_i, \mathbf{m}_j)
+\end{equation}
+重投影误差为，
+\begin{equation}
+	\mathbf{r}_{ij}=\sigma_{ij}*(\hat{\mathbf{m}}_{ij} - \mathbf{m}_{ij})
+\end{equation}
+其中，$\sigma_{ij}$为观测协方差的逆。
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cp2/calibrate_camera}
+	\caption{相机标定流程图}
+	\label{camera_calibration_framework}
+\end{figure}
+总的优化目标函数定义为，
+\begin{equation}
+\{\mathbf{R}^*,\mathbf{t}^*, \mathbf{m}^*, \mathbf{K}^*\}=\mathop{\arg\min}_{\mathbf{R},\mathbf{t}, \mathbf{m}, \mathbf{K}} \ \ \sum_{i=1}^{N} \sum_{j=1}^{M} \| \mathbf{r}_{ij}\|.
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{多标定板情形}
+\end{itemize}
 
 \subsection{多相机标定}
 
