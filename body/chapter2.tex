@@ -2,7 +2,71 @@
 \subsection{相机模型}
 
 \subsubsection{普通相机}
-
+普通相机相机模型是简化的OpenCV的针孔相机模型\cite{opencvfisheye}。以下以pinhole-brwon模型为例。
+\begin{itemize}
+	\item \textbf{正向模型}
+\end{itemize}
+假设相机坐标系下的三维点$\mathbf{p}=(x,y,z)^T$, 点$\mathbf{p}$转到归一化焦平面，
+\begin{equation}
+x'=x/z, y'=y/z
+\end{equation}
+记三维点$\mathbf{p'}=(x',y',1)^T$。对$\mathbf{p'}$加畸变,
+\begin{equation}\label{equ:pinhole-add-dist}
+\left\{
+\begin{array}{lr}
+r^2 = x'^2+y'^2 \\
+x_d = x'*(1+k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2) \\
+y_d = y'*(1+k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)
+\end{array}
+\right.
+\end{equation}
+其中$\mathbf{p}_d=(x_d,y_d)^T$为畸变点。转化到图像坐标，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+u=f_x*x_d+c_x \\
+v=f_y*y_d+c_y 
+\end{array}
+\right.
+\end{equation}
+其中，$f_x,f_y$为焦距，$c_x,c_y$为光心。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{反向模型}
+\end{itemize}
+将图像坐标转到相机坐标系归一化焦平面，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+x_d=(u-c_x)/f_x \\
+y_d=(v-c_y)/f_y 
+\end{array}
+\right.
+\end{equation}
+对点$\mathbf{p}_d=(x_d,y_d)^T$去畸变，采用迭代的方式计算$p'$，如算法\ref{alg:pinhole-remove-dist}所示。\\
+\SetKwRepeat{Do}{do}{while}%
+\begin{algorithm}[H]
+	\caption{pinhole-brown模型去畸变}%算法名字
+	\label{alg:pinhole-remove-dist}
+	\LinesNumbered %要求显示行号
+	\KwIn{畸变点$\mathbf{p}_d=(x_d,y_d)^T$,畸变系数$k_1, k_2, k_3, p_1, p_2$}%输入参数
+	\KwOut{去畸变点$\mathbf{p'}=(x',y')^T$}%输出
+	设置阈值$\epsilon$，设置初始化去畸变点$\mathbf{p'}=\mathbf{p}_d$，设置迭代次数$N$\; %\;用于换行
+%	$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
+%	$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
+%	\While{$\left\| \mathbf{p'}+(\Delta x_d,\Delta y_d)^T-\mathbf{p}_d\right\|_1>\epsilon$ and \mbox{迭代次数小于$N$}}{
+%		$\mathbf{p'} = \mathbf{p}_d-(\Delta x_d,\Delta y_d)^T$\;
+%		$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
+%		$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
+%	}
+	\Do{$\left\| \mathbf{p'}+(\Delta x_d,\Delta y_d)^T-\mathbf{p}_d\right\|_1>\epsilon$ and \mbox{迭代次数小于$N$}}{
+		$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
+		$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
+		$\mathbf{p'} = \mathbf{p}_d-(\Delta x_d,\Delta y_d)^T$\;
+	}
+\end{algorithm}
+pinhole-brown模型去掉$k_3$，即为pinhole-radtan模型。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{鱼眼相机}
 Calib-X支持的广角/鱼眼相机模型为pinhole-equidistant。该模型源自Kannala-Brandt Camera Model\cite{kannala2006generic}（简称为\textbf{KB}模型）。
 \begin{enumerate}[(1)]
@@ -30,8 +94,8 @@ y
 如图\ref{kb model}所示。
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp2/ds}
-	\caption{\textbf{KB}模型。$P$}
+	\includegraphics[width=0.5\textwidth]{figure/cp2/ds}
+	\caption{\textbf{KB}模型。$X_c-Y_c-Z_c$表示相机坐标系，$P$为相机坐标系下的三维点，$x,y$表示图像坐标系}
 	\label{kb model}
 \end{figure}
 \begin{itemize}
@@ -114,6 +178,7 @@ v_{0}
 	\item \textbf{CalibX中使用的pinhole-equidistant模型}
 \end{enumerate}
 CalibX中使用的pinhole-equidistant模型其实与OpenCV中使用的fish-eye模型\cite{opencvfisheye}是一样的。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{itemize}
 	\item \textbf{正向模型}
 \end{itemize}
@@ -122,13 +187,13 @@ CalibX中使用的pinhole-equidistant模型其实与OpenCV中使用的fish-eye�
 	x'=x/z, y'=y/z
 \end{equation}
 记三维点$\mathbf{p'}=(x',y',1)^T$。对$\mathbf{p'}$加畸变,
-\begin{equation}
+\begin{equation}\label{equ:equi-add-disst}
 \left\{
 \begin{array}{lr}
 r=\sqrt{x'*x'+y'*y'}   \\
 \theta = atan(r) \\
-d(\theta) = \theta\left(1+k_1*\theta^2+k_2*\theta^4+k_3*\theta^6+k_4*\theta^8\right) \\
-x_d = d(\theta)*x'/r, y_d = d(\theta)*y'/r  
+\theta_d = \theta\left(1+k_1*\theta^2+k_2*\theta^4+k_3*\theta^6+k_4*\theta^8\right) \\
+x_d = \theta_d*x'/r, y_d = \theta_d*y'/r  
 \end{array}
 \right.
 \end{equation}
@@ -142,6 +207,7 @@ v=f_y*y_d+c_y
 \right.
 \end{equation}
 其中，$f_x,f_y$为焦距，$c_x,c_y$为光心。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{itemize}
 	\item \textbf{反向模型}
 \end{itemize}
@@ -154,7 +220,47 @@ y_d=(v-c_y)/f_y
 \end{array}
 \right.
 \end{equation}
-对点$\mathbf{p}_d=(x_d,y_d)^T$去畸变，采用迭代的方式计算$\theta$
+根据公式\ref{equ:equi-add-disst}，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+r = tan(\theta) \\
+\theta_d = \sqrt{x_d^2+y_d^2} \\
+x' = r*x_d/\theta_d, y' = r*y_d/\theta_d
+\end{array}
+\right.
+\end{equation}
+其中，$\theta_d$的推导如下，
+\begin{equation}
+\begin{aligned}
+\theta_d &= x_d * r / x' =  y_d * r /y' \\
+\theta_d^2 &= \frac{r^2*x_d^2}{x'^2} = \frac{r^2*y_d^2}{y'^2} \mbox{（两边平方）}\\
+&= \frac{r^2(x_d^2+y_d^2)}{x'^2+y'^2} \mbox{（等比定理）}\\
+&=x_d^2+y_d^2 \mbox{（利用$r=\sqrt{x'^2+y'^2}$化简）}\\
+\theta_d &= \sqrt{x_d^2+y_d^2}
+\end{aligned}
+\end{equation}
+对点$\mathbf{p}_d=(x_d,y_d)^T$去畸变，采用迭代的方式计算$\theta$，如算法\ref{alg:equi-remove-dist}所示。\\
+\begin{algorithm}[H]
+	\caption{pinhole-equidistant模型去畸变}%算法名字
+	\label{alg:equi-remove-dist}
+	\LinesNumbered %要求显示行号
+	\KwIn{畸变点$\mathbf{p}_d=(x_d,y_d)^T$,畸变系数$k_1, k_2, k_3, k_4$}%输入参数
+	\KwOut{去畸变点$\mathbf{p'}$}%输出
+	设置阈值$\epsilon$，设置初始化尺度$scale=1$，设置迭代次数$N$\; %\;用于换行
+	$\theta_d=\sqrt{x_d*x_d+y_d*y_d}$ \;
+	$\theta = \theta_d$ \;
+	\If{$\theta_d>\epsilon$}{
+		$\theta=\theta_d$\;
+		\For{$j=0; j<N; ++j$}{
+			$\theta=\theta_d/\left(1+k_1*\theta^2+k_2*\theta^4+k_3*\theta^6+k_4*\theta^8\right)$\;		
+		}
+	}
+	$scale = tan(\theta)/\theta_d$ \;
+	$\mathbf{p'}=\mathbf{p}_d*scale$
+\end{algorithm}
+
+
 
 \subsection{单相机标定}
 
