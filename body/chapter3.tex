@@ -1,6 +1,44 @@
 \section{卷帘相机}
 \subsection{样条}
-
+\subsubsection{B-Spline基本概念}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{B样条定义}
+\end{itemize}
+给定n+1个控制点(control points)$\mathbf{c}=\left\{c_{0}, c_{1}, \ldots, c_{n}\right\}$和一个节点向量(knot vector)$\mathbf{t}=\left\{t_{0}, t_{1}, \ldots, t_{m}\right\}$, 由这些控制点和节点向量定义的p次(degree)B样条为:
+\begin{equation}\mathbf{b}(\mathbf{t}):=\sum_{i=0}^{n} \Phi_{i, p}(\mathbf{t}) c_{i}\end{equation}
+其中, $\Phi_{i,p}$为p次B样条的基函数。B样条包含很多信息：n+1个控制点,m+1个节点，次数为p。注意，n，m，p满足$m=n+p+1$。更准确的讲，如果要定义一个包含n+1个控制点的p次B样条，我们必须提供$n+p+2$个节点。另一方面，如果给定m+1个节点和n+1个控制点，则B样条的次数为$p=m-n-1$。样条曲线上对应于节点$t_i$的点,称为knot point。因此，kont points将B样条曲线划分为曲线段,每个曲线段定义在一个节点区间上。每个曲线段都是一个p次B样条曲线。
+\begin{itemize}
+	\item \textbf{B样条基函数}
+\end{itemize}
+令$\mathbf{t}$为m+1个非递减参数$\{t_0 \leq t_1 \leq \dots \leq t_m\}$，每个$t_i$称为节点，称为节点序列(Knot Vector)，半闭半开区间$[u_i, u_{i+1})$称为第i个节点区间(knot span)。基函数的节点允许重复，如果出现了n(n>1)次，则称其为n重节点。如果仅出现一次，那么称其为简单节点。如果所有的间$[u_i, u_{i+1})$区间长度都是一样的，那么称节点区间为均匀区间，反之，称为非均匀区间。“非均匀有理B样条”就是说其节点区间是非均匀的。节点将区间$[u_0, u_m]$分成多段。考虑$\Phi_{i, k}(\mathbf{t})$时，可以认为其定义域是在$[u_0, u_m]$上的，但是其只在有限的区间上非0，因此，B样条的基函数是局部的。
+B样条的基函数由三个参数决定：阶次(degree)为k-1，时间参数t，第i个基函数的B样条的基函数由递归公式给出：
+\begin{equation}
+	\left\{\begin{array}{l}
+	{\Phi}_{j, k}(t)=\frac{t-t_{j}}{t_{j+k-1}-t_{j}} {\Phi}_{j, k-1}(t)+\frac{t_{j+k}-t}{t_{j+k}-t_{j+1}} {\Phi}_{j+1, k-1}(t) \\
+	{\Phi}_{i, 1}(t)=\left\{\begin{array}{ll}
+	1, & t \in\left[t_{i}, t_{i+1}\right) \\
+	0, & t \notin\left[t_{i}, t_{i+1}\right)
+	\end{array}\right.
+	\end{array}\right.
+\end{equation}
+上述表达式称为Cox-de Boor迭代式。
+\begin{itemize}
+	\item \textbf{B样条的矩阵形式表示}
+\end{itemize}
+两个多项式的乘积可以用Toeplitzmatrix表示。因此B样条的Cox-deBoor迭代式也可以用Toeplitzmatrix表示。具有如下形式的矩阵称为Toeplitz matrix，
+\begin{equation}
+	\boldsymbol{T} = \begin{bmatrix} 
+	{\alpha}_0 & {\alpha}_1  & \hdots  & {\alpha}_s  & & & \boldsymbol{0} \\ 
+	{\alpha}_{-1} & {\alpha}_0  & \ddots  &  & {\alpha}_s & & \\
+	\vdots & &  & & & \ddots  & \\
+	\vdots & \hdots & \ddots  & \ddots & \ddots & \hdots & {\alpha}_s \\
+	{\alpha}_{-r}  & \hdots &  \ddots & &\ddots & & \vdots \\
+	& \ddots &  &\ddots &  \ddots & \ddots & {\alpha}_1 \\
+	\boldsymbol{0}  & & {\alpha}_{-r}  &  \hdots &  & {\alpha}_{-1}  & {\alpha}_0
+	\end{bmatrix} 
+\end{equation}
+一个多项式$f(x)=a_0+a_1x+a_2x^2+...+a_{n-1}x^{n-1}(a_{n-1}\neq0)$。的系数可以生成一个特别的Toeplitzmatrix，下三角矩阵：
 \subsection{卷帘相机标定}
 
 
