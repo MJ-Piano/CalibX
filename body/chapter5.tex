@@ -4,7 +4,8 @@
 \subsection{RandomGrid}
 \subsubsection{创建标定板}
 \subsubsection{特征点检测}
-
+假设标定板背景是白色，圆是黑色的。
+自适应二值化基于积分图。通过比较当前点的灰度值与其周围图像块的灰度值均值来确定其二值化结果，如图\ref{fig:AdaptiveThreshold}所示。具体见算法\ref{alg:AdaptiveThreshold}。\\
 \begin{algorithm}[H]
 	\caption{自适应二值化}%算法名字
 	\label{alg:AdaptiveThreshold}
@@ -27,4 +28,71 @@
 			out[id] = (I[id] $< \tau$*(avg-min\_d)) ? 0 : 255
 		}
 	}
+\end{algorithm}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cp5/integrate_graph}
+	\caption{基于积分图自适应二值化算法。}
+	\label{fig:AdaptiveThreshold}
+\end{figure}
+\begin{algorithm}[H]
+	\caption{打标签算法}%算法名字
+	\label{alg:Label}
+	\LinesNumbered %要求显示行号
+	\KwIn{灰度图宽w，高h，积分图I，标签图label，标签向量labels}%输入参数
+	\KwOut{二值化图O（0或者255）}%输出
+	标签图I所有值都置为-1 \;
+	\For{$d=0; d<max(w, h); ++d$}{
+		\If{$d<w$}{
+			\For{$r=0; r<min(d, h-1); ++r$}{
+				AssignLabel(w, h, I, label, labels, r, d, 0);
+			}
+		}
+		\If{$d<h$}{
+			\For{$c=0; c<min(d, w-1); ++c$}{
+				AssignLabel(w, h, I, label, labels, d, c, 0);
+			}
+		}
+	}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\SetKwFunction{FMain}{AssignLabel}
+	\SetKwProg{Fn}{Function}{:}{}
+	\Fn{\FMain{$w,h,I,label,labels,r,c$}}{
+		\If{I[r * w + c] == 0}{
+			labelr = label + r * w \;
+			labelrm1 = labelr - w \;
+			lup = r $>$ 0 ? RootLabel(labels, labelrm1[c]) : -1 \;
+			lleft = c $>$ 0 ? RootLabel(labels, labelr[c - 1]) : -1 \;
+%			\uIf{lup $>=$ 0 $\AND$ lleft $>=$ 0 $\AND$ lup $!=$ lleft}{
+%				labelr[c] = lup \;
+%				labels[lup].size += labels[lleft].size + 1\;
+%				labels[lleft].equiv = lup\;
+%				labels[lup].bbox.Insert(labels[lleft].bbox)\;
+%			}\uElseIf{lup $>=$ 0}{
+%				labelr[c] = lup\;
+%				++labels[lup].size\;
+%				labels[lup].bbox.Insert(c, r)\;
+%			}\uElseIf{lleft $>=$ 0}{
+%				labelr[c] = lleft\;
+%				++labels[lleft].size\;
+%				labels[lleft].bbox.Insert(c, r);
+%			}\Else{
+%				PixelClass pc = {-1, IRectangle(c, r, c, r), 1}\;
+%				labels.push\_back(pc)\;
+%				labelr[c] = labels.size() - 1\;
+%			}
+		}  
+	}
+	\textbf{End Function} \\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\SetKwFunction{FMain}{RootLabel}
+	\SetKwProg{Fn}{Function}{:}{}
+	\Fn{\FMain{$label,labels$}}{
+		\If{label >= 0}{
+			while (labels[label].equiv >= 0)
+			label = labels[label].equiv\;
+		}  
+		\textbf{return} $label; $ 
+	}
+	\textbf{End Function}
 \end{algorithm}
