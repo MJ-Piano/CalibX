@@ -31,17 +31,24 @@
 \end{algorithm}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp5/integrate_graph}
-	\caption{基于积分图自适应二值化算法。}
+	\includegraphics[width=0.7\textwidth]{figure/cp5/integrate_graph}
+	\caption{基于积分图自适应二值化算法结果。}
 	\label{fig:AdaptiveThreshold}
 \end{figure}
-\begin{algorithm}[H]
+打标签如图\ref{fig:label}，具体见算法\ref{alg:Label}。实际上就是把属于同一个圆的像素标记相同的标签。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/cp5/label}
+	\caption{基于二值图的打标签算法结果。}
+	\label{fig:label}
+\end{figure}
+\begin{algorithm}[h]
 	\caption{打标签算法}%算法名字
 	\label{alg:Label}
 	\LinesNumbered %要求显示行号
 	\KwIn{灰度图宽w，高h，积分图I，标签图label，标签向量labels}%输入参数
-	\KwOut{二值化图O（0或者255）}%输出
-	标签图I所有值都置为-1 \;
+	\KwOut{标签图label，标签向量labels}%输出
+	标签图label所有值都置为-1 \;
 	\For{$d=0; d<max(w, h); ++d$}{
 		\If{$d<w$}{
 			\For{$r=0; r<min(d, h-1); ++r$}{
@@ -59,28 +66,28 @@
 	\SetKwProg{Fn}{Function}{:}{}
 	\Fn{\FMain{$w,h,I,label,labels,r,c$}}{
 		\If{I[r * w + c] == 0}{
-			labelr = label + r * w \;
+			labelr = label + r * w ;
 			labelrm1 = labelr - w \;
 			lup = r $>$ 0 ? RootLabel(labels, labelrm1[c]) : -1 \;
 			lleft = c $>$ 0 ? RootLabel(labels, labelr[c - 1]) : -1 \;
-%			\uIf{lup $>=$ 0 $\AND$ lleft $>=$ 0 $\AND$ lup $!=$ lleft}{
-%				labelr[c] = lup \;
-%				labels[lup].size += labels[lleft].size + 1\;
-%				labels[lleft].equiv = lup\;
-%				labels[lup].bbox.Insert(labels[lleft].bbox)\;
-%			}\uElseIf{lup $>=$ 0}{
-%				labelr[c] = lup\;
-%				++labels[lup].size\;
-%				labels[lup].bbox.Insert(c, r)\;
-%			}\uElseIf{lleft $>=$ 0}{
-%				labelr[c] = lleft\;
-%				++labels[lleft].size\;
-%				labels[lleft].bbox.Insert(c, r);
-%			}\Else{
-%				PixelClass pc = {-1, IRectangle(c, r, c, r), 1}\;
-%				labels.push\_back(pc)\;
-%				labelr[c] = labels.size() - 1\;
-%			}
+			\uIf{$lup >= 0 \&\& lleft >= 0 \&\& lup != lleft$}{
+				labelr[c] = lup \;
+				labels[lup].size += labels[lleft].size + 1\;
+				labels[lleft].equiv = lup\;
+				labels[lup].bbox.Insert(labels[lleft].bbox)\;
+			}\uElseIf{lup $>=$ 0}{
+				labelr[c] = lup;
+				++labels[lup].size\;
+				labels[lup].bbox.Insert(c, r)\;
+			}\uElseIf{lleft $>=$ 0}{
+				labelr[c] = lleft;
+				++labels[lleft].size\;
+				labels[lleft].bbox.Insert(c, r);
+			}\Else{
+				PixelClass pc = \{-1, IRectangle(c, r, c, r), 1\}\;
+				labels.push\_back(pc)\;
+				labelr[c] = labels.size() - 1\;
+			}
 		}  
 	}
 	\textbf{End Function} \\
@@ -88,11 +95,35 @@
 	\SetKwFunction{FMain}{RootLabel}
 	\SetKwProg{Fn}{Function}{:}{}
 	\Fn{\FMain{$label,labels$}}{
-		\If{label >= 0}{
-			while (labels[label].equiv >= 0)
+		\If{$label >= 0$}{
+			while (labels[label].equiv $>=$ 0)
 			label = labels[label].equiv\;
 		}  
 		\textbf{return} $label; $ 
 	}
 	\textbf{End Function}
+\end{algorithm}
+
+\begin{algorithm}[H]
+	\caption{标签图计算候选椭圆}%算法名字
+	\label{alg:FindCandidateConicsFromLabels}
+	\LinesNumbered %要求显示行号
+	\KwIn{灰度图宽w，高h，标签向量labels}%输入参数
+	\KwOut{候选椭圆}%输出
+	$conic\_min\_area = 2.0, conic\_max\_area=9e4, conic\_min\_density = 0.5, conic\_min\_aspect=0.2$ \;
+	\For{$j=0; j<h; ++j$}{
+		y1 = max(1, j-rad) \;
+		y2 = min(h-1, j+rad) \;
+		\For{$i=0; i<w; ++i$}{
+			x1 = max(1, i-rad) \;
+			x2 = min(w-1, i+rad) \;
+			count = (x2-x1)*(y2-y1) \;
+			intIy2 = intI + y2*w \;
+			intIy1m1 = intI + (y1-1)*w \;
+			sum = intIy2[x2] - intIy1m1[x2] - intIy2[x1-1] + intIy1m1[x1-1] \;
+			avg = sum/count \;
+			id = j*w+i \;
+			out[id] = (I[id] $< \tau$*(avg-min\_d)) ? 0 : 255
+		}
+	}
 \end{algorithm}
