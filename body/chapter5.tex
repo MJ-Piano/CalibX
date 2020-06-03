@@ -110,7 +110,7 @@
 	\LinesNumbered %要求显示行号
 	\KwIn{灰度图宽w，高h，标签向量labels}%输入参数
 	\KwOut{候选椭圆}%输出
-	$conic\_min\_area = 2.0, conic\_max\_area=9e4, conic\_min\_density = 0.5, conic\_min\_aspect=0.2$ \;
+	$conic\_min\_area = 2.0, conic\_max\_area=9e4, conic\_min\_density = 0.5, conic\_min\_aspect=0.2, border = 3$ \;
 	\For{$j=0; j<h; ++j$}{
 		y1 = max(1, j-rad) \;
 		y2 = min(h-1, j+rad) \;
