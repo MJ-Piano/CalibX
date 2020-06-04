@@ -29,14 +29,14 @@
 		}
 	}
 \end{algorithm}
-\begin{figure}[H]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{figure/cp5/integrate_graph}
 	\caption{基于积分图自适应二值化算法结果。}
 	\label{fig:AdaptiveThreshold}
 \end{figure}
 打标签如图\ref{fig:label}，具体见算法\ref{alg:Label}。实际上就是把属于同一个圆的像素标记相同的标签。
-\begin{figure}[H]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{figure/cp5/label}
 	\caption{基于二值图的打标签算法结果。}
@@ -103,27 +103,47 @@
 	}
 	\textbf{End Function}
 \end{algorithm}
-
-\begin{algorithm}[H]
-	\caption{标签图计算候选椭圆}%算法名字
-	\label{alg:FindCandidateConicsFromLabels}
-	\LinesNumbered %要求显示行号
-	\KwIn{灰度图宽w，高h，标签向量labels}%输入参数
-	\KwOut{候选椭圆}%输出
-	$conic\_min\_area = 2.0, conic\_max\_area=9e4, conic\_min\_density = 0.5, conic\_min\_aspect=0.2, border = 3$ \;
-	\For{$j=0; j<h; ++j$}{
-		y1 = max(1, j-rad) \;
-		y2 = min(h-1, j+rad) \;
-		\For{$i=0; i<w; ++i$}{
-			x1 = max(1, i-rad) \;
-			x2 = min(w-1, i+rad) \;
-			count = (x2-x1)*(y2-y1) \;
-			intIy2 = intI + y2*w \;
-			intIy1m1 = intI + (y1-1)*w \;
-			sum = intIy2[x2] - intIy1m1[x2] - intIy2[x1-1] + intIy1m1[x1-1] \;
-			avg = sum/count \;
-			id = j*w+i \;
-			out[id] = (I[id] $< \tau$*(avg-min\_d)) ? 0 : 255
-		}
-	}
-\end{algorithm}
+一个标签向量labels保存了一个圆的信息，包含像素个数、圆的外接矩形等。算法通过面积、长宽比、像素密度等对圆进行过滤，即
+\begin{equation}
+\left\{
+\begin{array}{lr}
+	area_{min} \le area \le area_{max} \\
+	aspect_{min} \le aspect = \frac{w}{h} \le aspect_{max} \\
+	density_{min} \le density = \frac{pixels}{area}
+\end{array}
+\right.
+\end{equation}
+其中，$area=\mbox{外接矩形的长w*宽h}, \mbox{pixels是圆像素个数}$。
+\begin{itemize}
+	\item \textbf{椭圆拟合}
+\end{itemize}
+二次曲线可以表达成如下的形式\cite{ConicSections}，
+\begin{equation}
+Q(x, y)=A x^{2}+B x y+C y^{2}+D x+E y+F=0
+\end{equation}
+写成矩阵的形式为，
+\begin{equation}
+\mathbf{x}^{T} \mathbf{C} \mathbf{x}=0
+\end{equation}
+其中，$\mathbf{x}=(x,y,1)^T$。
+\begin{equation}\mathbf{C} =\left(\begin{array}{ccc}
+A & B / 2 & D / 2 \\
+B / 2 & C & E / 2 \\
+D / 2 & E / 2 & F
+\end{array}\right)\end{equation}
+根据\cite{ouellet2009precise}，存在对偶的二次曲线，满足，
+\begin{equation}
+l^{T} \mathbf{C}^* l=0
+\end{equation}
+其中，$l=(a,b,c)^T$是正切于二次曲线的直线， $\mathbf{C}^*=\mathbf{C}^{-1}$。以椭圆为例，其正切曲线如图\ref{fig:dual_conic}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/cp5/dual_conic}
+	\caption{垂直于椭圆梯度向量的直线与椭圆相切。}
+	\label{fig:dual_conic}
+\end{figure}
+记$\Theta=\left\{A^{*}, B^{*}, C^{*}, D^{*}, E^{*}, F^{*}\right\}$是$\mathbf{C}^*$的参数向量，则估计$\Theta$能通过最小化以下目标函数来实现，
+\begin{equation}\label{equ:conic_least_square}
+\Phi(\Theta)=\sum_{i \in R} \omega_{i}\left(l_{i}^{T} \mathbf{C}^{*}(\Theta) l_{i}\right)^{2}
+\end{equation}
+其中$R$是二次曲线的正切线集合，$\omega_{i}$为该正切线权重。由于直线的尺度是欠定的，固定向量模长$\|(a,b)^T\|=1$，
