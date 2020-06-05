@@ -118,7 +118,7 @@
 	\item \textbf{椭圆拟合}
 \end{itemize}
 二次曲线可以表达成如下的形式\cite{ConicSections}，
-\begin{equation}
+\begin{equation}\label{equ:conic-discriminant}
 Q(x, y)=A x^{2}+B x y+C y^{2}+D x+E y+F=0
 \end{equation}
 写成矩阵的形式为，
@@ -131,11 +131,11 @@ A & B / 2 & D / 2 \\
 B / 2 & C & E / 2 \\
 D / 2 & E / 2 & F
 \end{array}\right)\end{equation}
-根据\cite{ouellet2009precise}，存在对偶的二次曲线，满足，
+注意，$\mathbf{C}$使对称矩阵。根据\cite{ouellet2009precise}，存在对偶的二次曲线，满足，
 \begin{equation}
 l^{T} \mathbf{C}^* l=0
 \end{equation}
-其中，$l=(a,b,c)^T$是正切于二次曲线的直线， $\mathbf{C}^*=\mathbf{C}^{-1}$。以椭圆为例，其正切曲线如图\ref{fig:dual_conic}
+其中，$l=(a,b,c)^T$是正切于二次曲线的直线， $\mathbf{C}^*=\mathbf{C}^{-1}$。注意，由于$\mathbf{C}$使对称矩阵，所有$\mathbf{C}^*$也是对称矩阵。以椭圆为例，其正切曲线如图\ref{fig:dual_conic}所示。\\
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{figure/cp5/dual_conic}
@@ -146,4 +146,55 @@ l^{T} \mathbf{C}^* l=0
 \begin{equation}\label{equ:conic_least_square}
 \Phi(\Theta)=\sum_{i \in R} \omega_{i}\left(l_{i}^{T} \mathbf{C}^{*}(\Theta) l_{i}\right)^{2}
 \end{equation}
-其中$R$是二次曲线的正切线集合，$\omega_{i}$为该正切线权重。由于直线的尺度是欠定的，固定向量模长$\|(a,b)^T\|=1$，
+其中$R$是二次曲线的正切线集合，$\omega_{i}$为该正切线权重。由于直线的尺度是欠定的，固定向量模长$\|(a,b)^T\|=1$，公式\ref{equ:conic_least_square}可以化为，
+\begin{equation}\label{equ:conic_least_square-1}
+\left[\sum_{i \in R} \omega_{i}^{2} K_{i} K_{i}^{T}\right][\Theta]=0
+\end{equation}
+其中，$K_i$是有切线的系数组成，即$K_{i}=\left[a_{i}^{2}, a_{i} b_{i}, b_{i}^{2}, a_{i} c_{i}, b_{i} c_{i}, c_{i}^{2}\right]^{T}$。在约束$\|\Theta\|=1$下，公式\ref{equ:conic_least_square-1}使用SVD分解能够求解。然而，该约束不具有欧式变换不变性。具体到椭圆的情形，对二次曲线的判别式\ref{equ:conic-discriminant}可以添加$4AC-B^2=1$的约束。此外，通过对$\mathbf{C}$求逆得，
+\begin{equation}\mathbf{C}^* =\left(\begin{array}{ccc}
+\frac{(E^2 - 4*C*F)}{-4|\mathbf{C}|} & \frac{(2*B*F - D*E)}{-4|\mathbf{C}|} &   \frac{-(B*E - 2*C*D)}{-4|\mathbf{C}|}\\
+\frac{(2*B*F - D*E)}{-4|\mathbf{C}|} & \frac{(D^2 - 4*A*F)}{-4|\mathbf{C}|} &  \frac{(2*A*E - B*D)}{-4|\mathbf{C}|}\\
+\frac{ -(B*E - 2*C*D)}{-4|\mathbf{C}|}  & \frac{(2*A*E - B*D)}{-4|\mathbf{C}|} & \frac{(B^2 - 4*A*C)}{-4|\mathbf{C}|}
+\end{array}\right)\end{equation}
+%\begin{equation}
+%\left\{
+%\begin{array}{lr}
+%\mathbf{C}^*_{00}=(E^2 - 4*C*F)/(-4|\mathbf{C}|) \\
+%\mathbf{C}^*_{01}=(2*B*F - D*E)/(-4|\mathbf{C}|) \\
+%\mathbf{C}^*_{02}=-(B*E - 2*C*D)/(-4|\mathbf{C}|)\\
+%\mathbf{C}^*_{10}=(2*B*F - D*E)/(-4|\mathbf{C}|) \\
+%\mathbf{C}^*_{11}=(D^2 - 4*A*F)/(-4|\mathbf{C}|) \\
+%\mathbf{C}^*_{12}=(2*A*E - B*D)/(-4|\mathbf{C}|)\\
+%\mathbf{C}^*_{20}=-(B*E - 2*C*D)/(-4|\mathbf{C}|)\\
+%\mathbf{C}^*_{21}=(2*A*E - B*D)/(-4|\mathbf{C}|) \\
+%\mathbf{C}^*_{22}=(B^2 - 4*A*C)/(-4|\mathbf{C}|)
+%\end{array}
+%\right.
+%\end{equation}
+其中，$|\mathbf{C}|$为行列式值，即
+\begin{equation}
+	|\mathbf{C}|=A*C*F - (C*D^2)/4 - (B^2*F)/4 - (A*E^2)/4 + (B*D*E)/4
+\end{equation}
+对偶系数$F^*$为，
+\begin{equation}
+F^{*}=\frac{1}{4|\mathbf{C}|}\left(4 A C-B^{2}\right)=\frac{1}{|\mathbf{C}|}\left|\begin{array}{cc}
+A & B / 2 \\
+B / 2 & C
+\end{array}\right|
+=\frac{1}{4|\mathbf{C}|}
+\end{equation}
+由于$\mathbf{C}^*$尺度不定，因此通过约束$\mathbf{C}^*$的尺度（即$|\mathbf{C}|=\frac{1}{4}$）能够使$F^{*}=1$即，
+\begin{equation}
+\left\{
+\begin{aligned}
+	&\Theta^{\prime}=\left(A^{\prime *}, B^{\prime *}, C^{\prime *}, D^{\prime *}, E^{\prime *}\right) \\
+	&\left(A^{\prime *}, B^{\prime *}, C^{\prime *}, D^{\prime *}, E^{\prime *}, 1\right)
+	=\lambda * \Theta
+\end{aligned}
+\right.
+\end{equation}
+$\Theta^{\prime}$满足，
+\begin{equation}
+\left[\sum_{i \in R} \omega_{i}^{2} K_{i}^{\prime} K_{i}^{T}\right]\left[\Theta^{\prime}\right]=\sum_{i \in R}-\omega_{i}^{2} K_{i}^{\prime} c_{i}^{2}
+\end{equation}
+其中，$K^{\prime}$是$K$中的前五个元素，即$K^{\prime}=\left[a_{i}^{2}, a_{i} b_{i}, b_{i}^{2}, a_{i} c_{i}, b_{i} c_{i}\right]^{T}$
