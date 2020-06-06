@@ -4,6 +4,17 @@
 \subsection{RandomGrid}
 \subsubsection{创建标定板}
 \subsubsection{特征点检测}
+圆点检测的流程如图\ref{fig:RandomGridDetection}所示。
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/cp5/flow_chart}
+	\caption{圆点检测流程。}
+	\label{fig:RandomGridDetection}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{图像二值化}
+\end{itemize}
 假设标定板背景是白色，圆是黑色的。
 自适应二值化基于积分图。通过比较当前点的灰度值与其周围图像块的灰度值均值来确定其二值化结果，如图\ref{fig:AdaptiveThreshold}所示。具体见算法\ref{alg:AdaptiveThreshold}。\\
 \begin{algorithm}[H]
@@ -35,74 +46,16 @@
 	\caption{基于积分图自适应二值化算法结果。}
 	\label{fig:AdaptiveThreshold}
 \end{figure}
-打标签如图\ref{fig:label}，具体见算法\ref{alg:Label}。实际上就是把属于同一个圆的像素标记相同的标签。
+\begin{itemize}
+	\item \textbf{图像连通区域分析}
+\end{itemize}
+打标签如图\ref{fig:label}。实际上就是把属于同一个圆的像素标记相同的标签。
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{figure/cp5/label}
 	\caption{基于二值图的打标签算法结果。}
 	\label{fig:label}
 \end{figure}
-\begin{algorithm}[h]
-	\caption{打标签算法}%算法名字
-	\label{alg:Label}
-	\LinesNumbered %要求显示行号
-	\KwIn{灰度图宽w，高h，积分图I，标签图label，标签向量labels}%输入参数
-	\KwOut{标签图label，标签向量labels}%输出
-	标签图label所有值都置为-1 \;
-	\For{$d=0; d<max(w, h); ++d$}{
-		\If{$d<w$}{
-			\For{$r=0; r<min(d, h-1); ++r$}{
-				AssignLabel(w, h, I, label, labels, r, d, 0);
-			}
-		}
-		\If{$d<h$}{
-			\For{$c=0; c<min(d, w-1); ++c$}{
-				AssignLabel(w, h, I, label, labels, d, c, 0);
-			}
-		}
-	}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	\SetKwFunction{FMain}{AssignLabel}
-	\SetKwProg{Fn}{Function}{:}{}
-	\Fn{\FMain{$w,h,I,label,labels,r,c$}}{
-		\If{I[r * w + c] == 0}{
-			labelr = label + r * w ;
-			labelrm1 = labelr - w \;
-			lup = r $>$ 0 ? RootLabel(labels, labelrm1[c]) : -1 \;
-			lleft = c $>$ 0 ? RootLabel(labels, labelr[c - 1]) : -1 \;
-			\uIf{$lup >= 0 \&\& lleft >= 0 \&\& lup != lleft$}{
-				labelr[c] = lup \;
-				labels[lup].size += labels[lleft].size + 1\;
-				labels[lleft].equiv = lup\;
-				labels[lup].bbox.Insert(labels[lleft].bbox)\;
-			}\uElseIf{lup $>=$ 0}{
-				labelr[c] = lup;
-				++labels[lup].size\;
-				labels[lup].bbox.Insert(c, r)\;
-			}\uElseIf{lleft $>=$ 0}{
-				labelr[c] = lleft;
-				++labels[lleft].size\;
-				labels[lleft].bbox.Insert(c, r);
-			}\Else{
-				PixelClass pc = \{-1, IRectangle(c, r, c, r), 1\}\;
-				labels.push\_back(pc)\;
-				labelr[c] = labels.size() - 1\;
-			}
-		}  
-	}
-	\textbf{End Function} \\
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	\SetKwFunction{FMain}{RootLabel}
-	\SetKwProg{Fn}{Function}{:}{}
-	\Fn{\FMain{$label,labels$}}{
-		\If{$label >= 0$}{
-			while (labels[label].equiv $>=$ 0)
-			label = labels[label].equiv\;
-		}  
-		\textbf{return} $label; $ 
-	}
-	\textbf{End Function}
-\end{algorithm}
 一个标签向量labels保存了一个圆的信息，包含像素个数、圆的外接矩形等。算法通过面积、长宽比、像素密度等对圆进行过滤，即
 \begin{equation}
 \left\{
@@ -197,4 +150,83 @@ $\Theta^{\prime}$满足，
 \begin{equation}
 \left[\sum_{i \in R} \omega_{i}^{2} K_{i}^{\prime} K_{i}^{T}\right]\left[\Theta^{\prime}\right]=\sum_{i \in R}-\omega_{i}^{2} K_{i}^{\prime} c_{i}^{2}
 \end{equation}
-其中，$K^{\prime}$是$K$中的前五个元素，即$K^{\prime}=\left[a_{i}^{2}, a_{i} b_{i}, b_{i}^{2}, a_{i} c_{i}, b_{i} c_{i}\right]^{T}$
+其中，$K^{\prime}$是$K$中的前五个元素，即$K^{\prime}=\left[a_{i}^{2}, a_{i} b_{i}, b_{i}^{2}, a_{i} c_{i}, b_{i} c_{i}\right]^{T}$。\\
+对于椭圆正切线，可以通过梯度来计算。假设像素$\mathbf{x}_i=(u_i,v_i)$处的梯度为$\nabla I_{i}=\left[I_{u i}, I_{v i}\right]^{T}$，则其正切线为，
+\begin{equation}
+l_{i}=\left[I_{l i i}, I_{i j},-\nabla I_{i}^{T} x_{i}\right]^{T}
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{圆最近邻域分析}
+\end{itemize}
+圆形角点最邻域分析的目的是通过遍历每个圆形角点和其他角点的距离，然后进行从小到大的排序，得到当前角点最近邻域的八个角点。如图\ref{fig:ClosestPoints}所示，角点最近邻域分析的最终目的是正确得到角点ID-128的最近邻八个角点：ID-155、154、153、129、127、103、102、101。圆形角点最邻域分析通过计算角点间的马氏距离来分析。距离计算采用的不是欧式距离，而是马氏距离。原因如下所示：在标定板上，ID-128最近的八个邻域角点ID为155、154、153、129、127、103、102、101；由于相机视角原因成像后，ID-155-128-101的之间欧式距离明显大于ID-153-128-103，在某些畸变严重时，ID-128-101的欧式距离会大于ID-128-152的欧式距离，导致距离排序时最小的八个角点不是标定板正确的8个最近邻角点，所以采用马氏距离代替欧式距离，马氏距离的权重根据每个圆形角点椭圆长短轴进行调整，这样就能保证得到正确的最近邻角点，为接下来的处理做了数据准备。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/cp5/ClosestPoints}
+	\caption{圆最近邻域分析}
+	\label{fig:ClosestPoints}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{圆最近邻三点线段分析}
+\end{itemize}
+正确得到圆形角点最近邻八个角点后，目的得到当前角点的竖直、水平、左上、右上四条线段，每个线段包含三个圆形角点，如图\ref{fig:FindTriples}所示。最近邻三点线段的连通的原理如下：
+\begin{enumerate}[(1)]
+	\item 每次遍历八个角点中的两个角点
+	\item 检测当前角点和上一步的两个角点形成的两个线段的像素距离是否相似
+	\item 检测三个角点围成三角形面积要足够小，即检测是否近似为直线
+	\item 最终可以得到竖直、水平、左上、右上四条线段
+\end{enumerate}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/cp5/FindTriples}
+	\caption{圆最近邻三点线段分析}
+	\label{fig:FindTriples}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{网格化}
+\end{itemize}
+角点网格化初始化的目的主要是确定一个初始角点，并且在当前角点，确定水平方向和竖直方向，为接下来的网格化连通做准备；角点网格化分析主要分为四个步骤：
+\begin{enumerate}[(1)]
+	\item 网格初始化，将所有角点位置的质心作为初始化角点；
+	\item 对当前角点的三点线段进行分析，得到网格化的水平、竖直方向；
+	下面描述如何得到网格化的水平、竖直方向，如图\ref{fig:ClosestPoints}中所示：假定初始角点为ID-127，那么有4条三点线段；判断每条三点线段的第一、三个角点的三点线段是否在当前角点的八个邻域内；通过分析可以发现，水平、竖直的线段满足判断，而左上、右上三点线段不满足判断，所以满足判断的两条三点线段作为网格化的水平、竖直方向。
+	\item 如果返回值有两条线段，则认为初始化成功；
+	\item 如果不成功，则遍历下一个角点；返回步骤1；
+\end{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{0-1编码}
+\end{itemize}
+上一节得到了网格化初始圆形角点和网格化水平、竖直两个搜索方向，本节主要完成以下两个工作：
+\begin{enumerate}[(1)]
+	\item 采用深度搜索遍历的方式，根据初始角点，水平、竖直搜索方向，每个角点的三点线段连通信息，进行网格化，网格化成功的点标记为1，网格化不成功的点标记为-1。网格化后会得到如下一个二维矩阵，1表示网格处有角点，-1表示无角点。
+	\item 接下来对网格化成功的点进行0-1编码，0-1编码步骤如下所示：
+	\begin{enumerate}[(a)]
+		\item 选取当前角点最近邻域八个角点的面积，从小到大进行排序；
+		\item 首先判断最大面积和最小面积之比的阈值，保证8个角点有大圆也有小圆；
+		\item 判断当前角点面积接近最小面积数值或者最大面积数值，如果接近最小面积数值的阈值，则编码为0，反之为1；
+	\end{enumerate}
+\end{enumerate}
+即根据0-1编码规则，网格化二维矩阵修改为如下矩阵，矩阵1代表大圆，0代表小圆。如图\ref{fig:code01}所示，二维矩阵对应图像，-1将二维矩阵充满，代表此处无角点信息。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/cp5/code01}
+	\caption{0-1编码矩阵}
+	\label{fig:code01}
+\end{figure}
+将检测后的网格化0-1编码矩阵，同RandomGrid标定板的0-1编码矩阵进行汉明距离匹配，判断是否能匹配成功，如果成功则继续进行角点ID的编码。流程步骤如下所示：
+\begin{enumerate}[(1)]
+	\item 首先将RandomGrid标定板的0-1编码矩阵进行90°、180°、270°旋转，一共得到4个待匹配的矩阵；
+	\item RandomGrid标定板的0-1编码矩阵已知，将其与检测后的网格化0-1编码矩阵进行汉明距离的匹配，匹配完全成功则汉明距离为0。
+	\item 如果匹配成功，得到第一步中4个待匹配矩阵的id
+	\item 根据第3步匹配成功的id进行旋转，然后每个角点ID对应为RandomGrid标定板的（行数-1）*列+列数
+\end{enumerate}
+最终结果如图\ref{fig:RandomGrid}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/cp5/RandomGrid}
+	\caption{RandomGrid检测结果}
+	\label{fig:RandomGrid}
+\end{figure}
