@@ -75,4 +75,41 @@ CalibX标定系统由软件系统和硬件系统组成。
 	\caption{CalibX标定系统支持的标定板}
 	\label{fig:calibx-calibration-board}
 \end{figure}
-支持多标定板。
+其中，棋盘格和CircleGrid为无局部编码的标定板，Apriltag和RandomGrid为局部编码标定板。\\
+CalibX总结有如下优点：
+\begin{itemize}
+	\item 支持多种相机模型，覆盖普通相机、广角相机和鱼眼相机。
+	\item 支持多种类型标定板，支持多块同一类型的、局部编码标定板。比如3块RandomGrid构成的立体直角。
+	\item 支持多相机，多相机允许是不同类型相机的组合，如普通相机和鱼眼相机、卷帘曝光相机和全局曝光相机。多相机标定支持重叠视场和无重叠视场两种类型。
+	\item 标定速度快。静态标定仅用几张图就能完成标定，标定时间不超过30s。RS标定和联标总计在5分钟内完成。
+	\item 高精度。正常情况下，多相机标定基线与设计值的误差在1mm以内，相机与IMU外参平移误差在3mm以内\footnote{标定设备是OPPO无面罩AR眼镜\label{calibration_device}}。
+	\item 高重复性精度。与市面上在售的产品\cite{indemind}相比，相机与IMU外参旋转角重复性精度高10倍\textsuperscript{\ref{calibration_device}}！如表\ref{tab:calibx-vs-indemind}所示。
+\end{itemize}
+\begin{table*}[t]
+	\centering
+	\caption{CalibX与Indemind标定对比}
+	\label{tab:calibx-vs-indemind}
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		方案 & 组别 &  Yaw/° & Pitch/° & Roll/° \\
+		\hline
+		\multirow{4}{*}{Indemind-双目模组} &1 & -179.521225 & -0.439943 & 0.622170 \\
+		\cline{2-5}
+		\multirow{4}{*}{} & 2 &-179.602241	&-0.463838	&0.598827 \\
+		\cline{2-5}
+		\multirow{4}{*}{} & 3 &-179.780491	&-0.662679	&0.404572 \\
+		\cline{2-5}
+		\multirow{4}{*}{} & STD &0.1326	&0.1223	&0.1195 \\
+		\cline{2-5}
+		\hline
+		\multirow{4}{*}{CalibX-OPPO眼镜} &1 & -89.940266 & 0.209434 & 179.883943 \\
+		\cline{2-5}
+		\multirow{4}{*}{} & 2 &-89.926987	&0.231154	&179.889317 \\
+		\cline{2-5}
+		\multirow{4}{*}{} & 3 &-89.919383	&0.258630	&179.889180 \\
+		\cline{2-5}
+		\multirow{4}{*}{} & STD &0.0106	&0.0247	&0.0031 \\
+		\cline{2-5}
+		\hline
+	\end{tabular}
+\end{table*}
