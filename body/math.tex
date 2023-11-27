@@ -1,0 +1,404 @@
+\pagenumbering{arabic}
+\section{数学基础}
+
+\subsection{样条}
+\subsubsection{B-Spline基本概念}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{B样条定义}
+\end{itemize}
+给定n+1个控制点(control points)$\mathbf{c}=\left\{c_{0}, c_{1}, \ldots, c_{n}\right\}$和一个节点向量(knot vector)$\mathbf{t}=\left\{t_{0}, t_{1}, \ldots, t_{m}\right\}$, 由这些控制点和节点向量定义的p次(degree)B样条为:
+\begin{equation}\mathbf{b}(\mathbf{t}):=\sum_{i=0}^{n} \Phi_{i, p}(\mathbf{t}) c_{i}\end{equation}
+其中, $\Phi_{i,p}$为p次B样条的基函数。B样条包含很多信息：n+1个控制点,m+1个节点，次数为p。注意，n，m，p满足$m=n+p+1$。更准确的讲，如果要定义一个包含n+1个控制点的p次B样条，我们必须提供$n+p+2$个节点。另一方面，如果给定m+1个节点和n+1个控制点，则B样条的次数为$p=m-n-1$。样条曲线上对应于节点$t_i$的点,称为knot point。因此，kont points将B样条曲线划分为曲线段,每个曲线段定义在一个节点区间上。每个曲线段都是一个p次B样条曲线。
+\begin{itemize}
+	\item \textbf{B样条基函数}
+\end{itemize}
+令$\mathbf{t}$为m+1个非递减参数$\{t_0 \leq t_1 \leq \dots \leq t_m\}$，每个$t_i$称为节点，称为节点序列(Knot Vector)，半闭半开区间$[u_i, u_{i+1})$称为第i个节点区间(knot span)。基函数的节点允许重复，如果出现了n(n>1)次，则称其为n重节点。如果仅出现一次，那么称其为简单节点。如果所有的间$[u_i, u_{i+1})$区间长度都是一样的，那么称节点区间为均匀区间，反之，称为非均匀区间。“非均匀有理B样条”就是说其节点区间是非均匀的。节点将区间$[u_0, u_m]$分成多段。考虑$\Phi_{i, k}(\mathbf{t})$时，可以认为其定义域是在$[u_0, u_m]$上的，但是其只在有限的区间上非0，因此，B样条的基函数是局部的。
+B样条的基函数由三个参数决定：阶次(degree)为k-1，时间参数t，第i个基函数的B样条的基函数由递归公式给出：
+\begin{equation}
+	\left\{\begin{array}{l}
+		{\Phi}_{j, k}(t)=\frac{t-t_{j}}{t_{j+k-1}-t_{j}} {\Phi}_{j, k-1}(t)+\frac{t_{j+k}-t}{t_{j+k}-t_{j+1}} {\Phi}_{j+1, k-1}(t) \\
+		{\Phi}_{i, 1}(t)=\left\{\begin{array}{ll}
+			1, & t \in\left[t_{i}, t_{i+1}\right) \\
+			0, & t \notin\left[t_{i}, t_{i+1}\right)
+		\end{array}\right.
+	\end{array}\right.
+\end{equation}
+上述表达式称为Cox-de Boor迭代式。
+\begin{itemize}
+	\item \textbf{B样条的矩阵形式表示}
+\end{itemize}
+两个多项式的乘积可以用Toeplitzmatrix表示。因此B样条的Cox-deBoor迭代式也可以用Toeplitzmatrix表示。具有如下形式的矩阵称为Toeplitz matrix，
+\begin{equation}
+	\boldsymbol{T} = \begin{bmatrix} 
+		{\alpha}_0 & {\alpha}_1  & \hdots  & {\alpha}_s  & & & \boldsymbol{0} \\ 
+		{\alpha}_{-1} & {\alpha}_0  & \ddots  &  & {\alpha}_s & & \\
+		\vdots & &  & & & \ddots  & \\
+		\vdots & \hdots & \ddots  & \ddots & \ddots & \hdots & {\alpha}_s \\
+		{\alpha}_{-r}  & \hdots &  \ddots & &\ddots & & \vdots \\
+		& \ddots &  &\ddots &  \ddots & \ddots & {\alpha}_1 \\
+		\boldsymbol{0}  & & {\alpha}_{-r}  &  \hdots &  & {\alpha}_{-1}  & {\alpha}_0
+	\end{bmatrix} 
+\end{equation}
+一个多项式$f(x)=a_0+a_1x+a_2x^2+...+a_{n-1}x^{n-1}(a_{n-1}\neq0)$的系数可以生成一个特别的Toeplitzmatrix，
+\begin{equation}
+	\mathbf{T} = \begin{bmatrix}
+		a_{0} & & & & & & 0 \\
+		a_{1} & a_{0} & & & & \\
+		\vdots & \ddots & \ddots & & & \\
+		a_{n-1} & \cdots & \ddots & \ddots & & \\
+		& \ddots & \cdots & \ddots & \ddots & \\
+		0 & & a_{n-1} & \cdots & a_{1} & a_{0}
+	\end{bmatrix}
+\end{equation}
+该Toeplitz matrix为下三角矩阵。用Toeplitz matrix表示两个多项式的乘积，
+\begin{equation}g(x)=c_{0}+c_{1} x+c_{2} x^{2}+\ldots+c_{m-1} x^{m-1}\left(a_{m-1} \neq 0\right)\end{equation}
+\begin{equation}q(x)=d_{0}+d_{1} x+d_{2} x^{2}+\ldots+d_{n-1} x^{n-1}\left(d_{n-1} \neq 0\right)\end{equation}
+\begin{equation}
+	\begin{aligned}
+		f(x) = g(x)q(x)
+		&= \mathbf{x}
+		\left[\begin{array}{ccccccc}
+			c_{0} & & & & & & 0 \\
+			c_{1} & c_{0} & & & \\
+			\vdots & \ddots & \ddots & & & \\
+			c_{m-1} & \cdots & \ddots & \ddots & & & \\
+			& \ddots & \cdots & \ddots & \ddots & & \\
+			& & c_{m-1} & \cdots & \ddots & c_{0} & \\
+			0 & & & c_{m-1} & \cdots & c_{1} & c_{0}
+		\end{array}\right]\left[\begin{array}{c}
+			d_{0} \\
+			d_{1} \\
+			\vdots \\
+			d_{n-1} \\
+			0 \\
+			\vdots \\
+			0
+		\end{array}\right] \\
+		&= \mathbf{x}\left[\begin{array}{cccc}
+			c_{0} & & & 0 \\
+			c_{1} & c_{0} & & \\
+			\vdots & \ddots & \ddots & \\
+			\vdots & \cdots & \ddots & c_{0} \\
+			\vdots & \cdots & \cdots & \vdots \\
+			c_{m-1} & c_{m-2} & \cdots & c_{m-n} \\
+			& c_{m-1} & \ddots & \vdots \\
+			& & \ddots & c_{m-2} \\
+			0 & & & c_{m-1}
+		\end{array}\right]\left[\begin{array}{c}
+			d_{0} \\
+			d_{1} \\
+			\vdots \\
+			d_{n-1}
+		\end{array}\right]
+	\end{aligned}
+\end{equation}
+其中，$\mathbf{x}=\left[\begin{array}{lllll} 1 & x & x^{2} & \cdots & x^{m+n-2} \end{array}\right]$
+根据B样条的性质可知k阶B样条的基函数为$p = (k-1)$次多项式。则$ {\Phi}_{j,k-1}(t)$可表示为：
+\begin{equation}
+	{\Phi}_{j, k-1}(u)=\left[\begin{array}{lllll}
+		1 & t & t^{2} & \cdots & t^{k-2}
+	\end{array}\right]\left[\begin{array}{c}
+		N_{0, j}^{k-1} \\
+		N_{1, j}^{k-1} \\
+		\vdots \\
+		N_{k-2, j}^{k-1}
+	\end{array}\right]
+\end{equation}
+这里，$u=\frac{t-t_{i}}{t_{i+1}-t_{i}},t\in[t_i,t_{i+1}),N_{i,j}^{k-1}$为常数。因此,Cox-de Boor迭代式可以用Toeplitz matrix表示，
+\begin{equation}
+	\begin{aligned}
+		{\Phi}_{j, k}(t) &=\frac{t-t_{j}}{t_{j+k-1}-t_{j}} {\Phi}_{j, k-1}(t)+\frac{t_{j+k}-t}{t_{j+k}-t_{j+1}} {\Phi}_{j+1, k-1}(t) \\
+		\\
+		&=(\frac{t_i-t_j}{t_{j+k-1}-t_{j}} + \frac{t_{i+1}-t_i}{t_{j+k-1}-t_{j}}\cdot\frac{t-t_i}{t_{i+1}-t_{i}}){\Phi}_{j, k-1}(t)  + (\frac{t_{j+k}-t_{i}}{t_{j+k}-t_{j+1}} \\
+		&+ \frac{-(t_{i+1}-t_i)}{t_{j+k}-t_{j+1}}\cdot\frac{t-t_i}{t_{i+1}-t_{i}}){\Phi}_{j+1, k-1}(t) \\
+		\\
+		&= (d_{0,j} + d_{1,j}u){\Phi}_{j, k-1}(t)+(h_{0,j} + h_{1,j}u){\Phi}_{j+1, k-1}(t) 
+	\end{aligned}	
+\end{equation}	
+\begin{equation}%
+	\begin{aligned}
+		{\Phi}_{j, k}(u) &= (d_{0,j} + d_{1,j}u){\Phi}_{j, k-1}(u)+(h_{0,j} + h_{1,j}u){\Phi}_{j+1, k-1}(u) \\
+		&=\begin{bmatrix} 
+			1 & u & u^{2} & \cdots & u^{k-1}
+		\end{bmatrix}
+		\begin{bmatrix} 
+			\begin{bmatrix} 
+				N_{0, j}^{k-1} & 0 \\
+				N_{1, j}^{k-1} & N_{0, j}^{k-1} \\
+				\vdots & N_{1, j}^{k-1} \\
+				N_{k-2, j}^{k-1} & \vdots \\
+				0 & N_{k-2, j}^{k-1}
+			\end{bmatrix} 
+			\begin{bmatrix} 
+				d_{0, j} \\
+				d_{1, j}
+			\end{bmatrix} +
+			\begin{bmatrix} 
+				N_{0, j+1}^{k-1} & 0 \\
+				N_{1, j+1}^{k-1} & N_{0, j+1}^{k-1} \\
+				\vdots & N_{1, j+1}^{k-1} \\
+				N_{k-2, j+1}^{k-1} & \vdots \\
+				0 & N_{k-2, j+1}^{k-1}
+			\end{bmatrix}
+			\begin{bmatrix} 
+				h_{0, j} \\
+				h_{l, j}
+			\end{bmatrix}
+		\end{bmatrix} 
+	\end{aligned}
+\end{equation}
+其中，
+\begin{equation}
+	\begin{array}{l}
+		u=\frac{t-t_{i}}{t_{i+1}-t_{i}}, u\in[0,1) \\
+		\\
+		d_{0, j}=\frac{t_{i}-t_{j}}{t_{j+k-1}-t_{j}}, d_{1, j}=\frac{t_{i+1}-t_{i}}{t_{j+k-1}-t_{j}} \\
+		\\
+		h_{0, j}=\frac{t_{j+k}-t_{i}}{t_{j+k}-t_{j+1}}, h_{l, j}=\frac{t_{i+1}-t_{i}}{t_{j+k}-t_{j+1}}
+	\end{array}
+\end{equation}
+\begin{itemize}
+	\item \textbf{非均匀B样条的矩阵表示}
+\end{itemize}
+B样条的基函数${\Phi}_{j,k}(t)$是(k-1)阶的分段多项式。当$t\in\left[t_{i},t_{i+1}\right),t_{i}<t_{i+1}$时，有k个(k-1)次B样条基函数不为0：$\quad{\Phi}_{j,k}(t),j=(i-k+1),(i-k+2),\hdots,i$。将这几个非0基函数用矩阵表示为：
+\begin{equation}
+	\begin{aligned}
+		&\begin{bmatrix}
+			{\Phi}_{i-k+l, k}(u) & {\Phi}_{i-k+2, k}(u) &  \cdots & {\Phi}_{i, k}(u) 
+		\end{bmatrix}
+		=\begin{bmatrix}
+			1 & u & u^{2} & \cdots & u^{k-1}
+		\end{bmatrix} \mathbf{M}^{k}(i), \\
+		&u=\left(t-t_{i}\right) /\left(t_{i+1}-t_{i}\right), u \in[0,1)
+	\end{aligned}
+\end{equation}
+其中，
+\begin{equation}
+	\mathbf{M}^{k}(i)=\left[\begin{array}{cccc}
+		N_{0, i-k+1}^{k} & N_{0, i-k+2}^{k} & \cdots & N_{0, i}^{k} \\
+		N_{1, i-k+1}^{k} & N_{1, i<i-k+2}^{k} & \cdots & N_{1, i}^{k} \\
+		\vdots & \vdots & \cdots & \vdots \\
+		N_{k \dashv, i-k+1}^{k} & N_{k+, i-k+2}^{k} & \cdots & N_{k \dashv, i}^{k}
+	\end{array}\right]
+\end{equation}
+$t_j$为对应的节点。用$\boldsymbol{c}_j$表示B样条的控制节点，则B样条曲线段，
+\begin{equation}
+	\begin{aligned}
+		\mathbf{b}_{i-k+1}(u) &=\begin{bmatrix}
+			{\Phi}_{i-k+1, k}(u) & {\Phi}_{i-k+2, k}(u) & \cdots & {\Phi}_{i, k}(u)
+		\end{bmatrix}
+		\begin{bmatrix}
+			{c}_{i-k+1} \\
+			{c}_{i-k+2} \\
+			\vdots \\
+			{c}_{i}
+		\end{bmatrix} \\
+		&=\begin{bmatrix}
+			1 & u & u^{2} & \cdots & u^{k-1}
+		\end{bmatrix}
+		\mathbf{M}^{k}(i)
+		\begin{bmatrix}
+			{c}_{i-k+1} \\
+			{c}_{i-k+2} \\
+			\vdots \\
+			{c}_{i}
+		\end{bmatrix} \\
+		&= \boldsymbol{u}_i^T\mathbf{M}^{k}(i)\boldsymbol{c}_i \\
+		&= \boldsymbol{\Phi}_i^k\boldsymbol{c}_i
+	\end{aligned}
+\end{equation}
+其中，$ u=\left(t-t_{i}\right) /\left(t_{i+1}-t_{i}\right), u \in[0,1) , \boldsymbol{u}_i^T = \begin{bmatrix} 1 \\ u \\ u^{2} \\ \cdots \\ u^{k-1} \end{bmatrix} $。  $  \mathbf{M}^{k}(i) $ 为第 i 个 (k-1)次B样条的基础矩阵。
+\begin{itemize}
+	\item \textbf{k-1次B样条基函数矩阵的递归公式}
+\end{itemize}
+第i个(k-1)次B样条的基础矩阵$\mathbf{M}^{k}(i)$可以由下面递归公式计算出来：
+\begin{equation}
+	\left\{
+	\begin{array}{l}
+		\begin{aligned}
+			\mathbf{M}^{k}(i)&=\begin{bmatrix}
+				\mathbf{M}^{k-1}(i) \\ 0
+			\end{bmatrix}
+			\begin{bmatrix}
+				1-d_{0, i-k+2} & d_{0, i-k+2} & & 0 \\
+				& 1-d_{0, i-k+3} & d_{0, i-k+3} & & \\
+				0 & & \ddots & \ddots & \\
+				0 & & & 1-d_{0, i} & d_{0, i}
+			\end{bmatrix} \\
+			&+  
+			\begin{bmatrix}
+				0 \\ \mathbf{M}^{k-1}(i)
+			\end{bmatrix}
+			\begin{bmatrix}
+				-d_{1, i-k+2} & d_{1, i-k+2} & & 0 \\
+				& -d_{1, i-k+3} & d_{1, i-k+3} & & \\
+				0 & & \ddots & \ddots & \\
+				0 & & & -d_{1, i} & d_{1, i}
+			\end{bmatrix}
+		\end{aligned} \\
+		\mathbf{M}^{1}(i)=[1]
+	\end{array}
+	\right.
+\end{equation}
+其中，$ u=\left(t-t_{i}\right) /\left(t_{i+1}-t_{i}\right), u \in[0,1)$。该递归公式的推导过程可以参考\cite{qin1998general}。
+\subsubsection{样条微分}
+B样条的微分也可以用矩阵形式表示，以4阶B样条为例。
+\begin{equation}
+	\begin{aligned}
+		& \mathbf{b}_{i-4+1}(u) =\begin{bmatrix}
+			1 & u_i(t) & u_i(t)^2 &  u_i(t)^3
+		\end{bmatrix}
+		\mathbf{M}^{4}(i)
+		\begin{bmatrix}
+			{c}_{i-3} \\
+			{c}_{i-2} \\
+			{c}_{i-1} \\
+			{c}_{i}
+		\end{bmatrix} = \boldsymbol{u}_i(t)^T \boldsymbol{M}_{i}^4 \boldsymbol{c}_{i}
+		\\
+		& u_i(t)=\left(t-t_{i}\right) /\left(t_{i+1}-t_{i}\right), t \in[t_i,t_{i+1})
+	\end{aligned}
+\end{equation}
+则，
+\begin{equation}
+	\begin{aligned}
+		&  \frac{d \boldsymbol{b}_{i-4+1}(t)}{d t} =\frac{1}{t_{i+1}-t_{i}} 
+		\begin{bmatrix}
+			\mathbf{0} & \mathbf{1} & \mathbf{2} u_{i}(t) & \mathbf{3} u_{i}(t)^{2}
+		\end{bmatrix}
+		\boldsymbol{n}_{i} \boldsymbol{c}_{i}=\boldsymbol{u}_{i}(t)^{T} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{M}_{i} \boldsymbol{c}_{i} \\	
+		&  \frac{d^{2} \boldsymbol{b}_{i-4+1}(t)}{d t^{2}} =\left(\frac{1}{t_{i+1}-t_{i}}\right)^{2} 
+		\begin{bmatrix}
+			\mathbf{0} & \mathbf{0} & \mathbf{2} & \mathbf{6} u_{i}(t)
+		\end{bmatrix}
+		\boldsymbol{n}_{i} \boldsymbol{c}_{i}=\boldsymbol{u}_{\boldsymbol{i}}(t)^{T} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{M}_{i} \boldsymbol{c}_{i}\\
+		&    \frac{d^{3} \boldsymbol{b}_{i-4+1}(t)}{d t^{3}} =\left(\frac{1}{t_{i+1}-t_{i}}\right)^{3} 
+		\begin{bmatrix}
+			\mathbf{0} & \mathbf{0} & \mathbf{0} & \mathbf{6}
+		\end{bmatrix} 
+		\boldsymbol{n}_{i} c_{i}=\boldsymbol{u}_{i}(t)^{T} \boldsymbol{D}_{i} \boldsymbol{D}_{i} \boldsymbol{D}_{i} \boldsymbol{M}_{i} \boldsymbol{c}_{i} \\
+		&   \frac{d^{4} \boldsymbol{b}_{i-4+1}(t)}{d t^{4}} =0
+	\end{aligned}
+\end{equation}
+其中，
+\begin{equation}
+	D_{i}=\frac{1}{t_{i+1}-t_{i}}
+	\begin{bmatrix}
+		0 & 1 & 0 & 0 \\
+		0 & 0 & 2 & 0 \\
+		0 & 0 & 0 & 3 \\
+		0 & 0 & 0 & 0
+	\end{bmatrix}
+\end{equation}
+\subsubsection{样条积分}
+\begin{equation}
+	\begin{aligned}
+		\int_{s_{1}}^{s_{2}} \boldsymbol{b}_{i}(t) dt &= \int_{s_{1}}^{s_{2}} \boldsymbol{u}_{i}(t)^{T} \boldsymbol{M}_{i} \boldsymbol{c}_{i} d t \\
+		&=\left(t_{i+1}-t_{i}\right) \int_{v_{1}}^{v_{2}}\left[\begin{array}{cccc}
+			1 & v & v^{2} & v^{3} 
+		\end{array}\right]  \boldsymbol{M}_{i} \boldsymbol{c}_{i} dv \\
+		&= \left(t_{i+1}-t_{i}\right)
+		\left.\left[v \quad \frac{v^{2}}{2} \quad \frac{v^{3}}{3} \quad \frac{v^{4}}{4}\right] M_{i} c_{i}\right|_{v1}^{v2}
+	\end{aligned}
+\end{equation}
+\begin{equation}
+	v=\frac{t-t_{i}}{t_{i+1}-t_{i}}, \quad v_{1}=\frac{s_{1}-t_{i}}{t_{i+1}-t_{i}}, \quad v_{2}=\frac{s_{2}-t_{i}}{t_{i+1}-t_{i}}, \quad d t=\left(t_{i+1}-t_{i}\right) dv
+\end{equation}
+\subsubsection{样条二次积分}
+4阶B样条的2次微分仍为B样条，对2次微分进行二次积分,得到的仍为B样条。
+\begin{equation}
+	\int_{t_{0}}^{t_{K}} \ddot{\mathbf{\Phi}}(t)^{T} \boldsymbol{Q}^{-1} \ddot{\mathbf{\Phi}}(t) d t=\sum_{i=0}^{K-1} \int_{t_{i}}^{t_{i+1}} \ddot{\mathbf{\Phi}}(t)^{T} \boldsymbol{Q}^{-1} \ddot{\mathbf{\Phi}}(t) d t, \quad \ddot{\mathbf{\Phi}}(t)=\boldsymbol{u}_{i}(t)^{T} \boldsymbol{D}_{i} \boldsymbol{D}_{i} M_{i} 
+\end{equation}
+因为，
+\begin{equation}
+	\begin{aligned}	
+		\int_{t_{i}}^{t_{i+1}} \ddot{\mathbf{\Phi}}(t)^{T} \boldsymbol{Q}^{-1} \ddot{\mathbf{\Phi}}(t) d t&=\int_{t_{i}}^{t_{i+1}} \boldsymbol{M}_{\boldsymbol{i}}^{T} \boldsymbol{D}_{\boldsymbol{i}}^{T} \boldsymbol{D}_{\boldsymbol{i}}^{T} \boldsymbol{u}_{\boldsymbol{i}}(t) \boldsymbol{Q}^{-1} \boldsymbol{u}_{\boldsymbol{i}}(t)^{T} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{M}_{\boldsymbol{i}} d t \\
+		&=\boldsymbol{M}_{\boldsymbol{i}}^{T} \boldsymbol{D}_{\boldsymbol{i}}^{T} \boldsymbol{D}_{\boldsymbol{i}}^{T} \int_{t_{i}}^{t_{i+1}} \boldsymbol{u}_{\boldsymbol{i}}(t) \boldsymbol{Q}^{-1} \boldsymbol{u}_{\boldsymbol{i}}(t)^{T} d t \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{M}_{\boldsymbol{i}} \\
+		%
+		\int_{t_{i}}^{t_{i+1}} \boldsymbol{u}_{i}(t) \boldsymbol{Q}^{-1} \boldsymbol{u}_{i}(t)^{T} d t&=\int_{t_{i}}^{t_{i+1}}\left[\begin{array}{ccc}
+			q_{11}^{-1} \boldsymbol{u}_{i}(t) \boldsymbol{u}_{i}(t)^{T} & \cdots & q_{k 1}^{-1} \boldsymbol{u}_{i}(t) \boldsymbol{u}_{i}(t)^{T} \\
+			\vdots & \ddots & \vdots \\
+			q_{k 1}^{-1} \boldsymbol{u}_{i}(t) \boldsymbol{u}_{i}(t)^{T} & \cdots & q_{k k}^{-1} \boldsymbol{u}_{i}(t) \boldsymbol{u}_{i}(t)^{T}
+		\end{array}\right] d t \\
+		&=\boldsymbol{Q}^{-1} \int_{t_{i}}^{t_{i+1}} \boldsymbol{u}_{i}(t) \boldsymbol{u}_{i}(t)^{T} d t \\
+		%
+		\int_{t_{i}}^{t_{i+1}} \boldsymbol{u}_{\boldsymbol{i}}(t) \boldsymbol{u}_{\boldsymbol{i}}(t)^{T} d t&=\left(t_{i+1}-t_{i}\right) \int_{0}^{1} v(t)^{T} v(t) d v=\left(t_{i+1}-t_{i}\right) \int_{0}^{1}\left[\begin{array}{c}
+			1 \\
+			v \\
+			v^{2} \\
+			v^{3}
+		\end{array}\right]\left[\begin{array}{cccc}
+			1 & v & v^{2} & v^{3}
+		\end{array}\right] d v 
+		\\
+		&=\left(t_{i+1}-t_{i}\right) \int_{0}^{1}\left[\begin{array}{cccc}
+			1 & v & v^{2} & v^{3} \\
+			v & v^{2} & v^{3} & v^{4} \\
+			v^{2} & v^{3} & v^{4} & v^{5} \\
+			v^{3} & v^{4} & v^{5} & v^{6}
+		\end{array}\right] d v \\
+		&=\left(t_{i+1}-t_{i}\right)\left[\begin{array}{cccc}
+			1 & 1 / 2 & 1 / 3 & 1 / 4 \\
+			1 / 2 & 1 / 3 & 1 / 4 & 1 / 5 \\
+			1 / 3 & 1 / 4 & 1 / 5 & 1 / 6 \\
+			1 / 4 & 1 / 5 & 1 / 6 & 1 / 7
+		\end{array}\right]
+	\end{aligned}
+\end{equation}
+所以, 积分结果为，
+\begin{equation}
+	\int_{t_{0}}^{t_{K}} \ddot{\mathbf{\Phi}}(t)^{T} \boldsymbol{Q}^{-1} \ddot{\mathbf{\Phi}}(t) d \tau=\sum_{i=0}^{K-1} \boldsymbol{M}_{i}^{T} \boldsymbol{D}_{i}^{T} \boldsymbol{D}_{i}^{T} \boldsymbol{Q}^{-1} \boldsymbol{V}_{\boldsymbol{i}} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{D}_{\boldsymbol{i}} \boldsymbol{M}_{\boldsymbol{i}}
+\end{equation}
+其中，
+\begin{equation}
+	\boldsymbol{D}_{\boldsymbol{i}}=\frac{1}{t_{i+1}-t_{i}}\left[\begin{array}{cccc}
+		0 & 1 & 0 & 0 \\
+		0 & 0 & 2 & 0 \\
+		0 & 0 & 0 & 3 \\
+		0 & 0 & 0 & 0
+	\end{array}\right] \quad \boldsymbol{V}_{\boldsymbol{i}}=\left(t_{i+1}-t_{i}\right)\left[\begin{array}{cccc}
+		1 & 1 / 2 & 1 / 3 & 1 / 4 \\
+		1 / 2 & 1 / 3 & 1 / 4 & 1 / 5 \\
+		1 / 3 & 1 / 4 & 1 / 5 & 1 / 6 \\
+		1 / 4 & 1 / 5 & 1 / 6 & 1 / 7
+	\end{array}\right]
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{bspline表示轨迹}
+$k$阶均匀B-spline样条定义为，
+\begin{equation}
+	\mathbf{T}(t)=\overline{\mathbf{T}}_{i-1} \prod_{j=1}^{k-1} \operatorname{Exp}\left(b_j(u(t)) \boldsymbol{\Omega}_{i+j-1}\right)
+\end{equation}
+其中，$u(t)=\left(t-t_i\right) / \Delta t \in[0,1)$，$t \in\left[t_i, t_{i+1}\right)$并决定索引$i$。
+\begin{equation}
+	b(u)=\mathbf{C}\left[\begin{array}{lllll}
+		1 & u & u^2 & \cdots & u^{k-1}
+	\end{array}\right]^{\top}
+\end{equation}
+$\mathbf{C} \in \mathbb{R}^{k \times k}$是一个常值矩阵.
+\begin{equation}
+	\boldsymbol{\Omega}_i=\operatorname{Log} \left(\overline{\mathbf{T}}_{i-1}^{-1} \overline{\mathbf{T}}_i\right)
+\end{equation}
+$\left\{\overline{\mathbf{T}}_l\right\}_{l=\{0, \ldots, M\}}, \overline{\mathbf{T}}_l \in \mathrm{SE}(3)$是样条的控制点，表示位姿。变换$\operatorname{Exp}:\mathbb{R}^6 \rightarrow \mathrm{SE}(3)$，即将6维向量转成位姿矩阵。其逆变换为$\operatorname{Log}:\mathrm{SE}(3) \rightarrow \mathbb{R}^6$，即将位姿矩阵转成6维向量。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

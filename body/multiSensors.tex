@@ -1,0 +1,62 @@
+\section{多传感器系统}
+
+\subsection{基于spline的标定}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/calibx/carSensors}
+	\caption{搭载多传感器的三轮小车}
+	\label{fig:carSensors}
+\end{figure}
+其中，
+\begin{itemize}
+	\item ${^W_C}\mathbf{T} = \{{^W_C}\mathbf{R}, {^W}\mathbf{p}_C\}$ 表示相机在由标定板定义的世界坐标系$W$下的位姿
+	\item ${^E_R}\mathbf{T} = \{{^E_R}\mathbf{R}, {^E}\mathbf{p}_R\}$ 表示RTK在ENU坐标系$E$下的位姿，在非GNSS的前提下，位姿仅包含平移而无旋转
+	\item ${^C_I}\mathbf{T} = \{{^C_I}\mathbf{R}, {^C}\mathbf{p}_I\}$ 表示在相机坐标系$C$下IMU与相机之间的相对位姿
+	\item ${^C_B}\mathbf{T} = \{{^C_B}\mathbf{R}, {^C}\mathbf{p}_B\}$ 表示在相机坐标系$C$下机体$B$与相机之间的相对位姿
+	\item ${^C_R}\mathbf{T} = \{{^C_R}\mathbf{R}, {^C}\mathbf{p}_R\}$ 表示在相机坐标系$C$下RTK与相机之间的相对位姿
+\end{itemize}
+
+\subsection{观测模型}
+选取相机在标定板定义的世界坐标系拟合样条，则相机的观测残差方程为，
+\begin{equation}
+	\mathbf{r}_{\mathrm{cam}}=\operatorname{Log} \left({^W_C}\mathbf{T}\left(t_{\mathrm{cam}}\right) \cdot {^W_C}\mathbf{T}^{-1}\right)
+\end{equation}
+${^W_C}\mathbf{T}\left(t_{\mathrm{cam}}\right)$是样条在$t_{\mathrm{cam}}$时刻的位姿。\\
+特别地，当存在多个相机时，假设以$C_0$相机为参考(即构建位姿样条)，则相机残差方程为，
+\begin{equation}
+	\mathbf{r}^i_{\mathrm{cam}}=\operatorname{Log} \left({^W_{C_0}}\mathbf{T}\left(t_{\mathrm{cam}}\right) \cdot \left({^W_{C_i}}\mathbf{T} \cdot {^{C_i}_{C_0}}\mathbf{T}\right)^{-1}\right)
+\end{equation}
+其中，$i$是相机索引，${^{C_i}_{C_0}}\mathbf{T}$是相机0到相机$i$的相对位姿。 \newline
+根据位姿转换关系，
+\begin{equation}
+	{_R^E}\mathbf{T} = {_W^E}\mathbf{T} \cdot {_R^W}\mathbf{T} = {_W^E}\mathbf{T} \cdot {_{C}^W}\mathbf{T} \cdot {_R^C}\mathbf{T} 
+\end{equation}
+假设RTK的测量只有平移，则RTK的观测残差方程为，
+\begin{equation}
+	\begin{aligned}
+		\mathbf{r}_{\mathrm{rtk}}
+		&=\mathbf{z}_{\mathrm{rtk}} - \mathbf{h}_{\mathrm{rtk}}\left({^W_C}\mathbf{T}\left(t_{\mathrm{rtk}}+\delta t_r\right), {^E_W}\mathbf{R}, {^E}\mathbf{p}_W, {^C}\mathbf{p}_R\right) \\
+		&=\mathbf{z}_{\mathrm{rtk}} - \left( {^E_W}\mathbf{R} \cdot {^W_C}\mathbf{R} \cdot {^C}\mathbf{p}_R + {^E_W}\mathbf{R} \cdot {^W}\mathbf{p}_C + {^E}\mathbf{p}_W \right)
+	\end{aligned}
+\end{equation}
+其中，${^E_W}\mathbf{T} = \{{^E_W}\mathbf{R}, {^E}\mathbf{p}_W\}$ 表示标定板定义的世界坐标系$W$到ENU坐标系的转换。$\delta t_r$表示RTK与相机之间的时延。${^W_C}\mathbf{T}\left(t_{\mathrm{rtk}}+\delta t_r\right)$为样条在$t_{\mathrm{rtk}}+\delta t_r$时刻的位姿。$\mathbf{z}_{\mathrm{rtk}}$是RTK的观测。\\
+轮式里程计观测的观测为线速度和角速度，根据位姿转换关系，
+\begin{equation}
+	{_W^B}\mathbf{T} = \left({_C^W}\mathbf{T} \cdot {_B^C}\mathbf{T} \right)^{-1} = {_C^B}\mathbf{T} \cdot {_C^W}\mathbf{T}^{-1} 
+\end{equation}
+假设在时间段$\left[t_m, t_n\right)$内，角速度和线速度积分得到的相对位姿为${_{B_m}^{B_n}}\mathbf{T}$
+则其观测残差方程为，
+\begin{equation}
+	\mathbf{r}_{\mathrm{odom}}=\operatorname{Log} \left({_C^B}\mathbf{T} \cdot {^W_C}\mathbf{T}\left(t_n + \delta t_o\right) \cdot {^W_C}\mathbf{T}^{-1}\left(t_m+\delta t_o\right) \cdot {_B^C}\mathbf{T} \cdot {_{B_m}^{B_n}}\mathbf{T}^{-1}\right)
+\end{equation}
+${^W_C}\mathbf{T}\left(t_{\mathrm{cam}}\right)$是样条在$t_{\mathrm{cam}}$时刻的位姿。
+
+总的优化目标函数为，
+\begin{equation}
+%	\begin{aligned}
+		 \underset{\boldsymbol{\Gamma}}{\arg \min }\left\{\sum_{i_{\mathrm{cam}}}\left\|\mathbf{r}_{\mathrm{cam}}\right\|_{\boldsymbol{\Sigma}_{\mathrm{cam}}^{-1}}^2\right. 
+		+\sum_{i_{\mathrm{rtk}}}\left\|\mathbf{r}_{\mathrm{rtk}}\right\|_{\Sigma_{\mathrm{rkk}}^{-1}}^2+\sum_{i_{\mathrm{odom}}}\left\|\mathbf{r}_{\mathrm{odom}}\right\|_{\Sigma_{\mathrm{odom}}^{-1}}^2 
+		 \left.+\sum_{i_{\text {imu }}}\left\|\mathbf{r}_{\mathrm{imu}}\right\|_{\Sigma_{\text {imu }}^{-1}}^2\right\} 		
+%	\end{aligned}
+\end{equation}
+其中，优化的参数$\boldsymbol{\Gamma} = \{{_C^W}\mathbf{T}, {^C_I}\mathbf{T}, {^C_B}\mathbf{T}, {^C_R}\mathbf{T}, \delta t_r, \delta t_o, \delta t_i\}$，即样条控制点，传感器之间的相对位姿和时延。$\boldsymbol{\Sigma}_{\mathrm{cam}}, \boldsymbol{\Sigma}_{\mathrm{rtk}}, \boldsymbol{\Sigma}_{\mathrm{odom}}, \boldsymbol{\Sigma}_{\mathrm{imu}}$是观测的协方差。

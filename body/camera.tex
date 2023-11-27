@@ -1,0 +1,914 @@
+\section{普通相机标定}
+\subsection{相机模型}
+
+\subsubsection{普通相机}
+普通相机相机模型是简化的OpenCV的针孔相机模型\cite{opencvfisheye}。以下以pinhole-brwon模型为例。
+\begin{itemize}
+	\item \textbf{正向模型}
+\end{itemize}
+假设相机坐标系下的三维点$\mathbf{p}=(x,y,z)^T$, 点$\mathbf{p}$转到归一化焦平面，
+\begin{equation}
+x'=x/z, y'=y/z
+\end{equation}
+记三维点$\mathbf{p'}=(x',y',1)^T$。对$\mathbf{p'}$加畸变,
+\begin{equation}\label{equ:pinhole-add-dist}
+\left\{
+\begin{array}{lr}
+r^2 = x'^2+y'^2 \\
+x_d = x'*(1+k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2) \\
+y_d = y'*(1+k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)
+\end{array}
+\right.
+\end{equation}
+其中$\mathbf{p}_d=(x_d,y_d)^T$为畸变点。转化到图像坐标，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+u=f_x*x_d+c_x \\
+v=f_y*y_d+c_y 
+\end{array}
+\right.
+\end{equation}
+其中，$f_x,f_y$为焦距，$c_x,c_y$为光心。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{反向模型}
+\end{itemize}
+将图像坐标转到相机坐标系归一化焦平面，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+x_d=(u-c_x)/f_x \\
+y_d=(v-c_y)/f_y 
+\end{array}
+\right.
+\end{equation}
+对点$\mathbf{p}_d=(x_d,y_d)^T$去畸变，采用迭代的方式计算$p'$，如算法\ref{alg:pinhole-remove-dist}所示。\\
+\SetKwRepeat{Do}{do}{while}%
+\begin{algorithm}[H]
+	\caption{pinhole-brown模型去畸变}%算法名字
+	\label{alg:pinhole-remove-dist}
+	\LinesNumbered %要求显示行号
+	\KwIn{畸变点$\mathbf{p}_d=(x_d,y_d)^T$,畸变系数$k_1, k_2, k_3, p_1, p_2$}%输入参数
+	\KwOut{去畸变点$\mathbf{p'}=(x',y')^T$}%输出
+	设置阈值$\epsilon$，设置初始化去畸变点$\mathbf{p'}=\mathbf{p}_d$，设置迭代次数$N$\; %\;用于换行
+%	$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
+%	$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
+%	\While{$\left\| \mathbf{p'}+(\Delta x_d,\Delta y_d)^T-\mathbf{p}_d\right\|_1>\epsilon$ and \mbox{迭代次数小于$N$}}{
+%		$\mathbf{p'} = \mathbf{p}_d-(\Delta x_d,\Delta y_d)^T$\;
+%		$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
+%		$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
+%	}
+	\Do{$\left\| \mathbf{p'}+(\Delta x_d,\Delta y_d)^T-\mathbf{p}_d\right\|_1>\epsilon$ and \mbox{迭代次数小于$N$}}{
+		$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
+		$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
+		$\mathbf{p'} = \mathbf{p}_d-(\Delta x_d,\Delta y_d)^T$\;
+	}
+\end{algorithm}
+pinhole-brown模型去掉$k_3$，即为pinhole-radtan模型。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{鱼眼相机}
+Calib-X支持的广角/鱼眼相机模型为pinhole-equidistant。该模型源自Kannala-Brandt Camera Model\cite{kannala2006generic}（简称为\textbf{KB}模型）。
+\begin{enumerate}[(1)]
+	\item \textbf{KB正向模型}
+\end{enumerate}
+
+\begin{itemize}
+	\item \textbf{投影模型}
+\end{itemize}
+假设$\theta$ 是入射光线和光轴的夹角，$r$是主点到像点的距离。满足，
+\begin{equation}
+r(\theta)=k_{1} \theta+k_{2} \theta^{3}+k_{3} \theta^{5}+k_{4} \theta^{7}+k_{5} \theta^{9}+\ldots
+\end{equation}
+假设$\Phi=(\theta, \varphi)^{\top}$是用来描述入射光线的方向的向量，则
+\begin{equation}
+\mathbf{x}=
+\left(\begin{array}{l}
+x \\
+y
+\end{array}\right)=r(\theta)\left(\begin{array}{c}
+\cos \varphi \\
+\sin \varphi
+\end{array}\right)=\mathcal{F}(\Phi)
+\end{equation}
+如图\ref{kb model}所示。
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.5\textwidth]{figure/cp2/ds}
+	\caption{\textbf{KB}模型。$X_c-Y_c-Z_c$表示相机坐标系，$P$为相机坐标系下的三维点，$x,y$表示图像坐标系}
+	\label{kb model}
+\end{figure}
+\begin{itemize}
+	\item \textbf{畸变模型}
+\end{itemize}
+径向畸变模型，
+\begin{equation}\begin{array}{l}
+\Delta_{\mathrm{r}}(\theta, \varphi)= \\
+\left(l_{1} \theta+l_{2} \theta^{3}+l_{3} \theta^{5}\right)\left(i_{1} \cos \varphi+i_{2} \sin \varphi+i_{3} \cos 2 \varphi+i_{4} \sin 2 \varphi\right)
+\end{array}\end{equation}
+切向畸变模型，
+\begin{equation}\begin{array}{l}
+\Delta_{\mathrm{t}}(\theta, \varphi)= \\
+\left(m_{1} \theta+m_{2} \theta^{3}+m_{3} \theta^{5}\right)\left(j_{1} \cos \varphi+j_{2} \sin \varphi+j_{3} \cos 2 \varphi+j_{4} \sin 2 \varphi\right)
+\end{array}\end{equation}
+畸变模型共包含14个变量。
+\begin{itemize}
+	\item \textbf{完整模型} 
+\end{itemize}
+\begin{equation}\label{equ:equi-distort}
+\begin{aligned}
+\mathbf{x}_{\mathrm{d}}&=\mathbf{x}+\mathbf{s} \\
+&=
+r(\theta) \mathbf{u}_{r}(\varphi)+\Delta_{r}(\theta, \varphi) \mathbf{u}_{r}(\varphi)+\Delta_{t}(\theta, \varphi) \mathbf{u}_{\varphi}(\varphi) \\
+&=\mathcal{D}\left(\mathbf{x}_{\mathrm{d}}\right)
+\end{aligned}
+\end{equation}
+其中，$\mathbf{u}_{r}(\varphi)=(\cos \varphi, \sin \varphi)^{\top}$和$\mathbf{u}_{\varphi}(\varphi)$是径向和切向方向的单位向量,
+\begin{equation}\mathbf{s}=\mathcal{S}(\Phi)=\Delta_{r}(\theta, \varphi) \mathbf{u}_{r}(\varphi)+\Delta_{t}(\theta, \varphi) \mathbf{u}_{\varphi}(\varphi)\end{equation}
+像素坐标为，
+\begin{equation}\label{equ:equi-projection}
+\mathbf{m}=
+\left(\begin{array}{l}
+u \\
+v
+\end{array}\right)=
+\left[\begin{array}{cc}
+m_{u} & 0 \\
+0 & m_{v}
+\end{array}\right]
+\left(\begin{array}{l}
+x_{\mathrm{d}} \\
+y_{\mathrm{d}}
+\end{array}\right)+\left(\begin{array}{c}
+u_{0} \\
+v_{0}
+\end{array}\right)=\mathcal{A}\left(\mathrm{x}_{\mathrm{d}}\right)
+\end{equation}
+其中，$m_{u}$和$m_{v}$是水平和垂直方向单位距离包含的像素数。结合公式\ref{equ:equi-distort}和\ref{equ:equi-projection}，记完整的正向相机模型为，
+\begin{equation}
+\mathbf{m}=\mathcal{P}_{\mathrm{c}}(\Phi)=\mathcal{A} \circ \mathcal{D} \circ \mathcal{F}
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{enumerate}[(2)]
+	\item \textbf{KB反向模型}
+\end{enumerate}
+\begin{equation}
+\Phi=\mathcal{P}_{\mathrm{c}}^{-1}(\mathbf{m})
+=\mathcal{F}^{-1} \circ \mathcal{D}^{-1} \circ \mathcal{A}^{-1}
+\end{equation}
+其中，$\mathcal{F}^{-1}$和$\mathcal{A}^{-1}$比较容易得到解析解。难点在于计算$\mathcal{D}^{-1}$，即计算$\mathbf{s}$。$\mathbf{s}$在$\mathbf{x}_{\mathrm{d}}$附近用一阶泰勒近似，
+\begin{equation}\label{equ:s}
+\begin{aligned}
+\mathbf{s} & \simeq\left(\mathcal{S} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathbf{d}}\right)+\frac{\partial\left(\mathcal{S} \circ \mathcal{F}^{-1}\right)}{\partial \mathbf{x}}\left(\mathbf{x}_{\mathbf{d}}\right)\left(\mathbf{x}-\mathbf{x}_{\mathbf{d}}\right) \\
+&=\mathcal{S}\left(\Phi_{\mathrm{d}}\right)-\frac{\partial \mathcal{S}}{\partial \Phi}\left(\frac{\partial \mathcal{F}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\right)^{-1} \mathbf{s}
+\end{aligned}\end{equation}
+其中，$\Phi_{\mathrm{d}}=\mathcal{F}^{-1}\left(\mathbf{x}_{\mathrm{d}}\right)$。
+整理公式\ref{equ:s},
+\begin{equation}
+\mathcal{S}\left(\Phi_{\mathrm{d}}\right)= \left(I + \frac{\partial \mathcal{S}}{\partial \Phi}\left(\frac{\partial \mathcal{F}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\right)^{-1}\right) \mathbf{s}
+\end{equation}
+由此可得，
+\begin{equation}\mathbf{s} \simeq\left(I+\frac{\partial \mathcal{S}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\left(\frac{\partial \mathcal{F}}{\partial \Phi}\left(\Phi_{\mathrm{d}}\right)\right)^{-1}\right)^{-1} \mathcal{S}\left(\Phi_{\mathrm{d}}\right)\end{equation}
+因此，
+\begin{equation}\begin{array}{l}
+\mathcal{D}^{-1}\left(\mathbf{x}_{\mathrm{d}}\right) \simeq \mathbf{x}_{\mathrm{d}}- \\
+\left(I+\left(\frac{\partial \mathcal{S}}{\partial \Phi} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathrm{d}}\right)\left(\left(\frac{\partial \mathcal{F}}{\partial \Phi} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathrm{d}}\right)\right)^{-1}\right)^{-1}\left(\mathcal{S} \circ \mathcal{F}^{-1}\right)\left(\mathbf{x}_{\mathrm{d}}\right)
+\end{array}\end{equation}
+\begin{enumerate}[(3)]
+	\item \textbf{CalibX中使用的pinhole-equidistant模型}
+\end{enumerate}
+CalibX中使用的pinhole-equidistant模型其实与OpenCV中使用的fish-eye模型\cite{opencvfisheye}是一样的。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{正向模型}
+\end{itemize}
+假设相机坐标系下的三维点$\mathbf{p}=(x,y,z)^T$, 点$\mathbf{p}$转到归一化焦平面，
+\begin{equation}
+	x'=x/z, y'=y/z
+\end{equation}
+记三维点$\mathbf{p'}=(x',y',1)^T$。对$\mathbf{p'}$加畸变,
+\begin{equation}\label{equ:equi-add-disst}
+\left\{
+\begin{array}{lr}
+r=\sqrt{x'*x'+y'*y'}   \\
+\theta = atan(r) \\
+\theta_d = \theta\left(1+k_1*\theta^2+k_2*\theta^4+k_3*\theta^6+k_4*\theta^8\right) \\
+x_d = \theta_d*x'/r, y_d = \theta_d*y'/r  
+\end{array}
+\right.
+\end{equation}
+其中$\mathbf{p}_d=(x_d,y_d)^T$为畸变点。转化到图像坐标，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+u=f_x*x_d+c_x \\
+v=f_y*y_d+c_y 
+\end{array}
+\right.
+\end{equation}
+其中，$f_x,f_y$为焦距，$c_x,c_y$为光心。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{反向模型}
+\end{itemize}
+将图像坐标转到相机坐标系归一化焦平面，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+x_d=(u-c_x)/f_x \\
+y_d=(v-c_y)/f_y 
+\end{array}
+\right.
+\end{equation}
+根据公式\ref{equ:equi-add-disst}，
+\begin{equation}
+\left\{
+\begin{array}{lr}
+r = tan(\theta) \\
+\theta_d = \sqrt{x_d^2+y_d^2} \\
+x' = r*x_d/\theta_d, y' = r*y_d/\theta_d
+\end{array}
+\right.
+\end{equation}
+其中，$\theta_d$的推导如下，
+\begin{equation}
+\begin{aligned}
+\theta_d &= x_d * r / x' =  y_d * r /y' \\
+\theta_d^2 &= \frac{r^2*x_d^2}{x'^2} = \frac{r^2*y_d^2}{y'^2} \mbox{（两边平方）}\\
+&= \frac{r^2(x_d^2+y_d^2)}{x'^2+y'^2} \mbox{（等比定理）}\\
+&=x_d^2+y_d^2 \mbox{（利用$r=\sqrt{x'^2+y'^2}$化简）}\\
+\theta_d &= \sqrt{x_d^2+y_d^2}
+\end{aligned}
+\end{equation}
+对点$\mathbf{p}_d=(x_d,y_d)^T$去畸变，采用迭代的方式计算$\theta$，如算法\ref{alg:equi-remove-dist}所示。\\
+\begin{algorithm}[H]
+	\caption{pinhole-equidistant模型去畸变}%算法名字
+	\label{alg:equi-remove-dist}
+	\LinesNumbered %要求显示行号
+	\KwIn{畸变点$\mathbf{p}_d=(x_d,y_d)^T$,畸变系数$k_1, k_2, k_3, k_4$}%输入参数
+	\KwOut{去畸变点$\mathbf{p'}$}%输出
+	设置阈值$\epsilon$，设置初始化尺度$scale=1$，设置迭代次数$N$\; %\;用于换行
+	$\theta_d=\sqrt{x_d*x_d+y_d*y_d}$ \;
+	$\theta = \theta_d$ \;
+	\If{$\theta_d>\epsilon$}{
+		$\theta=\theta_d$\;
+		\For{$j=0; j<N; ++j$}{
+			$\theta=\theta_d/\left(1+k_1*\theta^2+k_2*\theta^4+k_3*\theta^6+k_4*\theta^8\right)$\;		
+		}
+	}
+	$scale = tan(\theta)/\theta_d$ \;
+	$\mathbf{p'}=\mathbf{p}_d*scale$
+\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{单相机标定}
+\subsubsection{单标定板单相机标定}
+假设$\mathbf{m}_j=(X,Y,Z)^T, j=1...M$为世界坐标系下的三维点，$\mathbf{T}_i=\{\mathbf{R}_i,\mathbf{t}_i\}$为$i$时刻世界坐标系到相机坐标系的转换矩阵，$\mathbf{m}_{ij}$为特征点$\mathbf{m}_j$在$i$时刻的观测， $\mathbf{K}$为相机内参矩阵。相机标定通过最小化重投影误差来实现。首先，将点$\mathbf{m}_j$转到相机坐标系，
+\begin{equation}
+	\mathbf{p}_j = \mathbf{R}_i*\mathbf{m}_j+\mathbf{t}_i
+\end{equation}
+利用相机的正向模型，得到点$\mathbf{p}_j$在$i$时刻的观测，即图像坐标，
+\begin{equation}
+	\hat{\mathbf{m}}_{ij} = \pi(\mathbf{R}_i,\mathbf{t}_i, \mathbf{m}_j)
+\end{equation}
+重投影误差为，
+\begin{equation}
+	\mathbf{r}_{ij}=\sigma_{ij}*(\hat{\mathbf{m}}_{ij} - \mathbf{m}_{ij})
+\end{equation}
+其中，$\sigma_{ij}$为观测协方差的逆。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cp2/calibrate_camera}
+	\caption{相机标定流程图}
+	\label{camera_calibration_framework}
+\end{figure}
+总的优化目标函数定义为，
+\begin{equation}
+\{\mathbf{R}^*,\mathbf{t}^*, \mathbf{m}^*, \mathbf{K}^*\}=\mathop{\arg\min}_{\mathbf{R},\mathbf{t}, \mathbf{m}, \mathbf{K}} \ \ \sum_{i=1}^{N} \sum_{j=1}^{M} \| \mathbf{r}_{ij}\|.
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{多标定板单相机标定}
+对于使用多标定板的情形，需要选择一块标定板作为参考并且以参考标定板的坐标系作为世界坐标系。记参考标定板的ID为$0$，第$b$个标定板到参考标定板的转换矩阵为$\mathbf{T}_{0b}=\{\mathbf{R}_{0b},\mathbf{t}_{0b}\}$。显然，$\mathbf{T}_{00}=\{\mathbf{I}_3,(0,0,0)^T\}$。假设$\mathbf{m}_{bj}=(X,Y,Z)^T, j=1...M_b$为$b$标定板所在坐标系下的三维点，则把$\mathbf{m}_{bj}$转换到世界坐标系为，
+\begin{equation}
+\mathbf{p}_{bj} = \mathbf{R}_{0b}*\mathbf{m}_{bj}+\mathbf{t}_{0b}
+\end{equation}
+\subsection{多相机标定}
+\subsubsection{重叠视场多相机标定}
+相机之间的连接关系是通过无向有权图来表示的，图的顶点表示相机。假设所有相机帧率相同并且都是在相同的时刻触发曝光。如果两个相机在某一时刻看到相同的特征点（简称为共视点），则该两个相机在图中有边连接。所有时刻共视点的数目之和作为两个相机之间边的权重。重叠视场的假设是，对于任意两个相机存在路径可达。根据无向有权图求解相机最优路径（optimal path）的见算法\ref{alg:overlap-cams-graph}。\\
+\begin{algorithm}[H]
+	\caption{重叠视场多相机标定相机链条构建}%算法名字
+	\label{alg:overlap-cams-graph}
+	\LinesNumbered %要求显示行号
+	\KwIn{无向有权图$\mathbf{G}=\{\mathbf{V},\mathbf{E}\}$，假设有$C$个顶点，即$C$个相机}%输入参数
+	\KwOut{相机最优路径（optimal path）}%输出
+	将$\mathbf{E}$中的权重取倒数\; %\;用于换行
+	利用Dijkstra算法求出顶点$V_0$到任意一个顶点的 $V_c$的最短路径 \;
+	利用所有最短路径和顶点构成新的图$\mathbf{G}'$ \;
+	\For{$j=0; j<C-1; ++j$}{
+		利用Dijkstra算法求出顶点$V_j$到任意一个顶点的 $V_{j+1}$的最短路径$P_j$\;	
+		$P_j$添加到optimal path	
+	}
+\end{algorithm}
+根据最优路径，即可构建相机链条（baselines）。相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。实际上，仅优化相机0的外参$\mathbf{T}_0$。通过$\mathbf{T}_0$和$\mathbf{B}$可以求解任一相机的外参，即$i$时刻，世界坐标系到相机c的相机坐标系的转换矩阵$\mathbf{T}_{ci}$为，
+\begin{equation}
+	\mathbf{T}_{ci}=\mathbf{B}_{c-1}*\dots*\mathbf{B}_0*\mathbf{T}_{0i}
+\end{equation}
+\subsubsection{无重叠视场多相机标定}
+无重叠视场多相机标定使用手眼标定方法初始化相机链条，即假设相机c的外参为$\mathbf{T}_c=\{\mathbf{T}_{c0},\mathbf{T}_{c1}\dots\}$，相机a的外参为$\mathbf{T}_a=\{\mathbf{T}_{a0},\mathbf{T}_{a1}\dots\}$。手眼标定旨在寻找一个最优的转换矩阵$\mathbf{B}_{ca}$，使得$\mathbf{T}_a$和$\mathbf{T}_c$对齐误差最小。需要注意的是，手眼标定要求$\mathbf{T}_a$和$\mathbf{T}_c$外参数目一致。对于使用OpenCV进行单板单相机标定中，标定板并不能保证任意时刻都能看到。因此，在使用OpenCV进行单板单相机标定后，再使用所有标定板的观测，重新计算相机外参以保证所有时刻的相机外参都能求解出来。实际上，相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。同样的，仅优化相机0的外参$\mathbf{T}_0$。
+
+
+\subsection{卷帘相机标定}
+消费级设备由于带宽的限制, 相机传感器的readout设计为逐行读取, 然后拼接成一张完整的图像, 这就会产生所谓的“果冻效应”。RS（rolling shutter)一般可以分为两种类型:\\
+non-overlapped: 在时间轴上读完一行后再进行下一行的曝光， 整个流程呈级联形式。\\
+overlapped: 在上一行数据readout未完成时就开始进行下一行的曝光， 整个流程呈pipeline形式。\\
+显然， overlapped类型更有利。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cp3/no_overlapped}
+	\caption{non-overlapped}
+	\label{non-overlapped}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cp3/overlapped}
+	\caption{overlapped}
+	\label{overlapped}
+\end{figure}
+RS相机标定算法标定overlapped类型中的line delay。
+\subsubsection{RS相机标定理论}
+\begin{itemize}
+	\item \textbf{RS相机标定原理}
+\end{itemize}
+大多数的RS相机，每张图像的line delay (两个连续行的起始时刻之间的积分时间)为一个固定值。基于这一假设，图像每一行的时间戳可以通过frame time和line delay定义。假定图像第一行积分的起始时间 已知，line delay，d，固定为常数，则图像第v行的曝光时间为
+\begin{equation}
+	t = \bar{t} + vd
+\end{equation}
+RS相机标定基于给定的landmark, 通过构建连续时间的透视投影模型来同步估计相机位姿和line delay\cite{6619023}。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{连续时间的位姿参数化}
+\end{itemize}
+将世界坐标系下的相机姿态x(t)用样条基函数表示,
+\begin{equation}
+	\begin{aligned}
+		&\boldsymbol{x}(t) := \boldsymbol{\Phi}(t)  \boldsymbol{c}, \\
+		&\boldsymbol{\Phi}(t) := [{\phi}_1(t) ... {\phi}_B(t)],     
+	\end{aligned}
+\end{equation}
+其中, ${\Phi}_b(t)$ 为 Dx1 维, ${\Phi}(t)$ 为 DxB 维, 系数矩阵 $\boldsymbol{c}$ 为Bx1维，将平移和旋转向量分开表示，
+\begin{equation}
+	\begin{aligned}
+		\boldsymbol{x}(t) &:= \begin{bmatrix} 
+			\boldsymbol{t}(t)\\
+			\boldsymbol{\psi}(t) 
+		\end{bmatrix} 
+		&= \begin{bmatrix} 
+			\boldsymbol{\Phi}_t(t)\boldsymbol{c}_{\boldsymbol{t}}\\ 
+			\boldsymbol{\Phi}_{\psi}(t)\boldsymbol{c}_{\boldsymbol{\psi}}
+		\end{bmatrix}
+	\end{aligned}
+\end{equation}
+用 $C(.)$表示旋转向量到旋转矩阵的转换,则连续时间的变换矩阵可表示为
+\begin{equation}
+	\boldsymbol{T}(t) := \begin{bmatrix} 
+		\boldsymbol{C}(\boldsymbol{\psi}(t)) && \boldsymbol{t}(t) \\
+		\boldsymbol{0}^T  && 1
+	\end{bmatrix} 
+\end{equation}
+在这种表示形式下, 世界坐标系下的速度 $ v(t)$ , 和加速度 $ a(t) $ 可以表示为
+\begin{equation}
+	\mathbf{v}(t)=\mathbf{t}(t)=\dot{\mathbf{\Phi}}(t) \mathbf{c}_{t}, \quad \mathbf{a}(t)=\ddot{\mathbf{t}}(t)=\ddot{\mathbf{\Phi}}(t) \mathbf{c}_{t}
+\end{equation}
+给定旋转参数, 对应的角速度为
+\begin{equation}
+	\boldsymbol{\omega}(t)=\mathbf{S}(\boldsymbol{\varphi}(t)) \dot{\boldsymbol{\varphi}}(t)=\mathbf{S}\left(\boldsymbol{\Phi}(t) \mathbf{c}_{\varphi}\right) \dot{\mathbf{\Phi}}(t) \mathbf{c}_{\varphi}
+\end{equation}
+其中, 采用 Cayley–Gibbs–Rodrigues parameterization @cite Bauchau2003TheVP 方法进行旋转向量和旋转矩阵之间的转换,  $ \varphi=\mathbf{a} \tan rac{1}{2} \varphi $ 定义了绕$ \mathbf{a} $轴旋转了角度 $ \varphi $.  则: 
+\begin{equation}
+	\begin{array}{l}
+		\mathbf{C}(\varphi):=1+\frac{2}{1+\varphi^{T} \varphi}\left(\varphi^{\times} \varphi^{\times}-\varphi^{\times}\right) \\ \\
+		\mathbf{S}(\varphi):=\frac{2}{1+\varphi^{T} \varphi}\left(1-\varphi^{\times}\right)
+	\end{array}
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{RS相机模型}
+\end{itemize}
+常用的相机透视投影模型为
+\begin{equation}
+	\boldsymbol{u}(t) := \boldsymbol{\pi}(\boldsymbol{T}(t)\boldsymbol{p})
+\end{equation}
+其中, $\boldsymbol{p}$ 是世界坐标系下的归一化的3D点, $\boldsymbol{\pi}(.)$ 是相机投影方程, $ \boldsymbol{u}(t) = (u,v) $ 为图像平面的投影, t为投影时间.对于RS相机, 每个特征点的时间戳为$ t = \bar{t} + vd $, 因此, 投影方程变为
+\begin{equation}
+	\boldsymbol{u}(t) := \boldsymbol{\pi}(\boldsymbol{T}({\bar{t} + vd})\boldsymbol{p})
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{重投影误差建模}
+\end{itemize}
+RS相机标定通过最小化重投影误差来优化求解未知参数. 代价方程定义为一系列 landmarks (k) 在每一帧 (i) 上的重投影误差, 误差权重矩阵为 $ \bar{\boldsymbol{R}}_k^i $.  估计的参数为样条系数,$\boldsymbol{c}$和时不变的RS相机参数(相机内参 + line delay), $\boldsymbol{\theta}$.
+\begin{equation}
+	\boldsymbol{c}^*,\boldsymbol{\theta}^* = \mathop{\arg\min}_{\boldsymbol{c},\boldsymbol{\theta}} \sum_{i,k} \boldsymbol{e}_{k,i}^{T}\bar{\boldsymbol{R}}_{k,i}^{-1} \boldsymbol{e}_{k,i}
+\end{equation}
+每一项的重投影误差为 landmark , $\boldsymbol{p}$ 投影到第 i 帧图像平面的 2D 点和检测到的 2D 特征点 $\boldsymbol{y}_k^i = (u_k^i, v_k^i)$之间的距离, 即:
+\begin{equation}
+	\boldsymbol{e}_{k,i} := \boldsymbol{y}_k^i - \boldsymbol{\pi}(\boldsymbol{T}(\bar{t} + v_k^id)\boldsymbol{p}_k), \\
+	\boldsymbol{y}_k^i = \boldsymbol{\pi}(\boldsymbol{T}(\bar{t} + v_k^id)\boldsymbol{p}_k) + \boldsymbol{n}_{k,i}
+\end{equation}
+其中, $ \boldsymbol{n}_{k,i} $是高斯噪声, $ \boldsymbol{n}_{k,i} \sim  \mathcal N (\boldsymbol{0}, \boldsymbol{R}_{k,i}) $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{参数标定}
+\end{itemize}
+通过 Gauss-Newton 最小化代价方程来求解未知参数, 则需要在未知数附近线性化残差项. 假定RS标定过程仅优化样条系数$ \boldsymbol{c} $ 和 line delay, 则误差项分别在样条系数和 line delay 附近处进行线性化方程:
+\begin{equation}
+	\begin{aligned}
+		\boldsymbol{e}_{k,i} & = \boldsymbol{y}_k^i - \boldsymbol{\pi}(\boldsymbol{T}(\boldsymbol{\Phi}(\bar{t} + v_k^id)(\bar{\boldsymbol{c}} + \delta{\boldsymbol{c}}))\boldsymbol{p}_k)
+		\approx  \bar{\boldsymbol{e}}_k^i - \boldsymbol{J}_{\boldsymbol{\pi}}\boldsymbol{\Phi}(\bar{t} + v_k^id)\delta{\boldsymbol{c}} \\
+		\boldsymbol{e}_{k,i} & = \boldsymbol{y}_k^i - \boldsymbol{\pi}(\boldsymbol{T}(\boldsymbol{\Phi}(\bar{t} + v_k^i (\bar{d} + \delta d))\boldsymbol{c}))\boldsymbol{p}_k)
+		\approx  \bar{\boldsymbol{e}}_k^i - \boldsymbol{J}_{\boldsymbol{\pi}}\dot{\boldsymbol{\Phi}}(\bar{t} + v_k^i\bar{d})\boldsymbol{c}v_k^i\delta d 
+	\end{aligned}
+\end{equation}
+其中, $ \boldsymbol{J}_{\boldsymbol{\pi}} = [\boldsymbol{j}_{\boldsymbol{\pi},u}, \boldsymbol{j}_{\boldsymbol{\pi},v} ]^T $ 是投影方程 $ \boldsymbol{u}(t) := \boldsymbol{\pi}(\boldsymbol{T}({\bar{t} + vd})\boldsymbol{p}) $ 对姿态参数 $ \boldsymbol{x}(t) $ 的雅各比. 融合上边两个式子, 得到
+\begin{equation}
+	\boldsymbol{e}_{k,i} \approx \bar{\boldsymbol{e}}_k^i - \boldsymbol{J}_{\boldsymbol{\pi}}[\boldsymbol{\Phi}(\bar{t} + v_k^i\bar{d}) \delta{\boldsymbol{c}}, \\
+	\dot{\boldsymbol{\Phi}}(\bar{t} + v_k^i\bar{d})v_k^i]\begin{bmatrix}\delta\boldsymbol{c}\\
+		\delta d
+	\end{bmatrix} 
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{误差项归一化}
+\end{itemize}
+误差项归一化就是将误差项通过方差矩阵的逆进行归一化,使得所有方差项的方差为单位方差. 目的是通过降低权重来减小高方差的误差项的置信度, 通过提高权重来增加低方差特征的误差项的置信度. 
+在相机标定过程中, 观测噪声即为图像特征点的检测噪声 $ \boldsymbol{n}_{k,i} = [n_{k,i}^u, n_{k,i}^v]^T $ , 假定该观测噪声是高斯的, 那么, 观测噪声对误差项的影响也是高斯分布. 
+重投影误差项的方差矩阵通过线性化测量方程来计算:
+\begin{equation}
+	\boldsymbol{\pi}(\boldsymbol{T}(\bar{t} + (\bar{v}_k^i + n_{k,i}^v)d)\boldsymbol{p}_k) 
+	\approx  \boldsymbol{\pi}(\boldsymbol{T}(\bar{t} + \bar{v}_k^id)\boldsymbol{p}_k)  + \boldsymbol{j}_{\boldsymbol{\pi}, v}^T(t_k^i)\dot{\boldsymbol{\Phi}}(t_k^i)\boldsymbol{c}dn_{k,i}^v.
+\end{equation}
+其中, $ \boldsymbol{J}_{\boldsymbol{\pi}} = [\boldsymbol{j}_{\boldsymbol{\pi},u}, \boldsymbol{j}_{\boldsymbol{\pi},v} ]^T $ 是投影方程 $ \boldsymbol{u}(t) := \boldsymbol{\pi}(\boldsymbol{T}({\bar{t} + vd})\boldsymbol{p}) $ 对姿态参数 $ \boldsymbol{x}(t) $ 的雅各比, $ \boldsymbol{j}_{\boldsymbol{\pi},u}, \boldsymbol{j}_{\boldsymbol{\pi},v} $分别为u, v方向上的分量. 雅各比矩阵的推导计算过程可以参考 \ref camara-reproj-err. 则重投影误差项
+\begin{equation}
+	\begin{aligned}
+		\boldsymbol{e}_{k,i} & = \bar{\boldsymbol{e}}_{k,i} + \boldsymbol{j}_{\boldsymbol{\pi}, v}^T(t_k^i)\dot{\boldsymbol{\Phi}}(t_k^i)\boldsymbol{c}dn_{k,i}^v + 
+		\begin{bmatrix} 
+			n_{k,i}^u\\
+			n_{k,i}^v
+		\end{bmatrix} 
+		& = \bar{\boldsymbol{e}}_{k,i} + 
+		\underbrace{
+			\left(
+			\begin{bmatrix} 
+				1 && 0\\
+				0 && 1
+			\end{bmatrix} 
+			+ \begin{bmatrix} 
+				0 && 1\\
+				0 && 1
+			\end{bmatrix}\boldsymbol{j}_{\boldsymbol{\pi}, v}^Td\dot{\boldsymbol{\Phi}}(t_k^i)\boldsymbol{c}
+			\right)
+		}_{\boldsymbol{A}_{k}(t_k^i)}
+		\begin{bmatrix} 
+			n_{k,i}^u\\
+			n_{k,i}^v
+		\end{bmatrix} 
+	\end{aligned}
+\end{equation}
+其中 $ \bar{\boldsymbol{e}}_{k,i} = \boldsymbol{y}_k^i - \boldsymbol{\pi}(\boldsymbol{T}(\bar{t}_i + \bar{v}_k^id)\boldsymbol{p}_k) $ , $ \boldsymbol{A}_{k}^i := \boldsymbol{A}_{k}(t_k^i) $ 将特征点的方差引入到误差项上.误差项的方差
+\begin{equation}
+	\begin{aligned}
+		\bar{\boldsymbol{R}}_{k,i} &= \mathbb{E}[(\bar{\boldsymbol{e}}_{k,i} - \boldsymbol{e}_{k,i})(\bar{\boldsymbol{e}}_{k,i} - \boldsymbol{e}_{k,i})^T]
+		&= \mathbb{E}[\boldsymbol{A}_{k,i}n_{k,i}n_{k,i}^T{\boldsymbol{A}_k^i}^T]
+		&= \boldsymbol{A}_{k,i}\boldsymbol{R}_{k,i}{\boldsymbol{A}_{k,i}}^T
+	\end{aligned}
+\end{equation}
+注意误差项的方差随时间变化, 在 line delay 改变时, 方差需要重新计算.
+误差项的期望是0, $ \mathbb{E}[\boldsymbol{e}_{k,i}] = 0$ ,误差项的方差是高斯的
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{实现细节}
+\end{itemize}
+连续时间位姿参数化的样条采用4阶B样条. 因为4阶B样条能描述一个连续,无跳变的运动. 且定义了2阶微分, 能允许我们实现一个基于加速度的运动先验. 
+旋转采用角轴进行参数化,角轴在$2k\pi$处会有奇异性. 对于离散估计, 这个奇异性不重要. 对于连续运动, 由于上一次旋转和本次旋转量相差不大, 因此为了保证旋转的连续性, 可以将旋转增加成等价参数化形式.
+求解最小二乘问题采用DogLeg实现,稀疏矩阵求解采用CHOLMOD.
+运动先验残差项和自适应节点更新策略介绍可见详细算法流程
+\subsubsection{RS相机标定流程}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{figure/cp3/rs_calib_pipeline}
+	\caption{RS相机标定流程}
+	\label{rs-calib-pipeline}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{初始化}
+\end{itemize}
+\begin{enumerate}[(1)]
+	\item 初始化linedelay
+	假定没有帧延迟, 初始化 line delay 为
+	\begin{equation}
+		d_0 = \frac{1}{fps}\frac{1}{N_R}
+	\end{equation}
+	其中, $ fps $为每秒图像的平均数目, $ N_R $为图像的行数.
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\item 初始化相机内参
+	代码中可以设置优化或者不优化相机内参. 如果不优化相机内参, 则从配置文件中读取相应的静态相机标定参数; 如果优化相机内参,则需要求解相机内参的初始值.
+	由于RS相机标定需要使用动态图像bag, 包含图像数目比较多, 相机内参标定过程不适用于大量图像, 因此, 增加图像筛选策略, 保留少数位姿差异大的图像进行投影参数和畸变参数的标定.
+	筛选图像的策略(对应函数 RefineObservations):
+	\begin{itemize}
+		\item[。] 计算每帧与首帧共视特征点的平均视差
+		\item[。] 根据平均视差进行排序
+		\item[。] 如果一半的图像数目小于20, 则选择前视差较大的一半图像, 反之, 则选择视差较大的前20张图像
+	\end{itemize} 
+	筛选出图像后, 进行静态相机标定, 具体原理可参考相机标定模块.
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\item 初始化相机外参
+	pnp计算图像位姿
+	\begin{itemize}
+		\item[。] 图像相机外参通过pnp计算初始值. 由于采用编码的标定板, 因此, 可以直接获取2D-3D的匹配点对, 采用opencv的pnp算法求解相机位姿.
+		\item[。] 如果pnp计算失败, 则删除当前帧.
+	\end{itemize}
+	如果在配置文件中设置了异常点剔除, 则会根据pnp计算的位姿和标定板的3D点, 计算重投影误差, 删除重投影误差较大的点. 这里代码设置默认阈值 20 pixel, 仅用于剔除可能匹配或检测错误的点.
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\item 生成landmark初始估计
+	landmarks 为标定板的3D点, 这里通过标定板参数, 提取标定板上的全部3D点坐标.
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\item 设置运动先验项
+	连续时间估计需要在样条的每个时间段内都有足够的测量信息来估计样条系数. 如果某一个样条段内的测量信息缺乏, 则会使得求解问题欠约束. 为了解决这个问题, 引入一个弱运动先验. 假定在缺少测量信息时, 相机以一个很小的加速度运动, 可以将加速度建模为高斯过程. 采用样条对相机位姿建模, 即 x(t) 为相机位姿, 则运动先验项为:
+	\begin{equation}
+		\ddot{x} \sim \mathcal{GP}(\boldsymbol{0}, \boldsymbol{Q}\delta(t-t'))
+	\end{equation}
+	权重可以进行配置, 代码默认设置 $ \boldsymbol{Q} := diag(10^{-5}, 10^{-5}, 10^{-5}, 10^{-2}, 10^{-2}, 10^{-2}) $.
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\item 初始化B样条
+	将相机的位姿 $ \boldsymbol{x}(t) $ 用连续B样条表示. pnp已经求解得到相机的初始位姿, 且B样条的基函数为定值, 因此可以求解得到样条系数 $ \boldsymbol{c} $. 作为后续迭代优化的初始值.下面通过具体实例说明样条系数的求解过程(变量名与代码一致). 4阶 B 样条, 样条节点个数取: 每秒10个(也可以自定义配置), 样条维数 = 6, 示例 bag 的数据有 29.2 s, 帧率 frame rate = 30.
+	获取初始的pnp位姿
+	\begin{itemize}
+		\item[。] 读取每张图像的位姿和时间戳, 存入 times, curve. curve中位姿存放格式为[t1, t2, t3, r1, r2, r3], 前三维(t1, t2, t3)为平移, 后三维(r1, r2, r3)为旋转.
+		\item[。] 保证旋转向量的连续性.
+	\end{itemize}
+	initSplineSparse 函数流程
+	\begin{itemize}
+		\item[。] numTimeSegments = knots\_num = seconds * frame\_rate/3 = 29.2 x 30/3 = 292
+		\item[。] 需要的样条系数 C = numTimeSegments + splineOrder - 1 = 292 + 4 -1 = 295
+		\item[。] 需要的节点数目 K = C + splineOrder = 295 + 4 = 299
+		\item[。] 样条维度 D = 6
+		\item[。] 初始化均匀 B 样条节点  dt = seconds / numSegments = 29.2 / 292 = 0.1 s, knots = t0 + dt * i, i=(0,1, ...K)
+	\end{itemize} 
+	setKnotsAndCoefficients 函数流程
+	\begin{itemize}
+		\item[。] 样条基础矩阵求解 initializeBasisMatrices
+		\item[。] basisMatrices 的个数 = numValidTimeSegments = numKnots - 2 * splineOrder + 1 = 292 - 2 * 4 + 1 = 285
+		\item[。] B样条第 i 个基础矩阵的可以通过下面的递推公式(\ref recursive-formula-for-basis-matrix )得到
+		\begin{equation}
+			\begin{aligned}
+				\boldsymbol{M}^k(i) &= \begin{bmatrix}  
+					\boldsymbol{M}^{k-1}(i) \\ \boldsymbol{0}
+				\end{bmatrix} 
+				\begin{bmatrix} 
+					1-d_{0,i-k+2} && d_{0,i-k+2} && && 0 &&\\
+					&& 1-d_{0,i-k+3} && d_{0,i-k+3} && &&\\
+					&&  && \ddots && \ddots &&\\
+					0 &&  && && 1-d_{0,i} && d_{0,i}
+				\end{bmatrix} \\
+				&+ 
+				\begin{bmatrix}  
+					\boldsymbol{0} \\ \boldsymbol{M}^{k-1}(i) 
+				\end{bmatrix} 
+				\begin{bmatrix} 
+					-d_{1,i-k+2} && d_{1,i-k+2} && && 0 &&\\
+					&& -d_{1,i-k+3} && d_{1,i-k+3} && &&\\
+					&&  && \ddots && \ddots &&\\
+					0 &&  && && -d_{1,i} && d_{1,i}
+				\end{bmatrix}, \\
+				& \boldsymbol{M}^1(i) = [1] 
+			\end{aligned}
+		\end{equation}
+		其中，$ d_{0,j} = rac{t_i - t_j}{t_{j+k-1} - t_j} $,   $ d_{1,j} = rac{t_{i+1} - t_i}{t_{j+k-1} - t_j} $
+	\end{itemize} 
+	求解样条系数矩阵
+	\begin{itemize}
+		\item[。] 样条系数矩阵 $ \boldsymbol{c} $的维度 DxC = 6x295 = 1770
+		\item[。] 求解出的pnp位姿个数 = interpolationPoints.cols() = 748 个
+		用4阶B样条表示相机位姿, 由于位姿维度为6, 因此, 需要将一维B样条的矩阵表示进行扩展, 得到多维B样条的矩阵表示形式.  即第i个相机位姿 $ curve[i] = [t1, t2, t3, r1, r2, r3]^T = \boldsymbol{A}_i\boldsymbol{c}_i$. 注意, 这里 $ \boldsymbol{A}_i $ 为 6x24 维, $ \boldsymbol{c}_i $ 为 24x1 维. 将全部相机位姿构建的等式合并到一起, 得到线性方程组 $ \boldsymbol{A}\boldsymbol{c} = curve $, 其中, $ \boldsymbol{A}$ 的维度为(6x748)x(6x295), $ \boldsymbol{c}$ 的维度为(6x295)x(1), curve 的维为(6x748). 用最小二乘法求解该线性方程组, 即可得到样条系数矩阵 $ \boldsymbol{c} $. 为了避免样条段内测量信息不足,加入运动约束项, 即样条段内加速度为0
+	\end{itemize} 
+\end{enumerate}
+以4阶B样条为例,即k=4，参考非均匀B样条的矩阵表示, 可知一维B样条的矩阵形式可表示为:
+\begin{equation}
+	\boldsymbol{b}_i(t) := \boldsymbol{u}_i(t)^T\boldsymbol{M}_i\boldsymbol{c}_i 
+\end{equation}
+其中, $ \boldsymbol{b}_i(t) $ 为1x1维,  $ \boldsymbol{u}_i(t) $ 为 4x1 维, $ \boldsymbol{M}_i $ 为 4x4 维, $ \boldsymbol{c}_i$ 为 4x1 维. 由于相机位姿 pose 为 6x1 维, 因此, 可以将 pose 的每个分量都表示成一维 B 样条, 即得到 6 个一维B样条. 将这 6 个一维 B 样条合并起来, 即得到六维 B 样条. 令 $ \boldsymbol{a}_i = \boldsymbol{u}_i(t)^T\boldsymbol{M}_i $ , 可知$ \boldsymbol{a}_i$ 为 1x4 x 4x4 = 1x4 维, 则 $ \boldsymbol{b}_i(t) := \boldsymbol{a}_i \boldsymbol{c}_i$. 因此, 对于 $ pose=[t1, t2, t3, r1, r2, r3]^T $ 有
+\begin{equation}
+	\begin{aligned}
+		&t1 = [a1, a2, a3, a4]\begin{bmatrix}
+			c1\\ c2\\ c3\\ c4
+		\end{bmatrix} \\
+		&t2 = [a5, a6, a7, a8]\begin{bmatrix}
+			c5\\ c6\\ c7 \\ c8
+		\end{bmatrix} \\
+		&t3 = [a9, a10, a11, a12]\begin{bmatrix}
+			c9\\ c10\\ c11\\ c12
+		\end{bmatrix} \\
+		&r1 = [a13, a14, a15, a16]\begin{bmatrix}
+			c13\\ c14\\ c15\\ c16
+		\end{bmatrix}\\
+		&r2 = [a17, a18, a19, a20]\begin{bmatrix}
+			c17\\ c18\\ c19\\ c20
+		\end{bmatrix} \\
+		&r3 = [a21, a22, a23, a24]\begin{bmatrix}
+			c21\\ c22\\ c23\\ c24
+		\end{bmatrix} 
+	\end{aligned}
+\end{equation}
+将上面6个式子合并起来, 可以写成:
+\begin{equation}
+	\begin{aligned}
+		\left[\begin{array}{c}
+			t1 \\ t2 \\t3 \\ r1 \\ r2 \\ r3
+		\end{array}\right] &= 
+		\left[\begin{array}{cccc}
+			\mathbf{A}_1 & \mathbf{A}_2 & \mathbf{A}_3 & \mathbf{A}_4 
+		\end{array}\right]
+		\left[\begin{array}{c}
+			c1 \\ c5 \\c9   \\c13 \\c17 \\c21 \\
+			c2 \\c6  \\c10  \\c14 \\c18 \\c22\\
+			c3 \\c7  \\c11  \\c15 \\c9  \\c23 \\
+			c4 \\c8  \\c12  \\c16 \\c20 \\c24
+		\end{array}\right] \\
+		&= \boldsymbol{A}_i * \boldsymbol{c}_i \\
+		&= 6*24 \quad * \quad 24*1 \\
+		&= 6*1
+	\end{aligned}
+\end{equation}
+其中，
+\begin{equation}
+	\mathbf{A}_1=
+	\left[\begin{array}{cccccc}
+		a1 & 0 & 0 & 0 & 0 & 0 \\
+		0 & a5 & 0 & 0 & 0 & 0 \\
+		0 & 0 & a9 & 0 & 0 & 0 \\
+		0 & 0 & 0 & a13 & 0 & 0 \\
+		0 & 0 & 0 & 0 & a17 & 0 \\
+		0 & 0 & 0 & 0 & 0 & a21\\
+	\end{array}\right]
+\end{equation}
+\begin{equation}
+	\mathbf{A}_2=
+	\left[\begin{array}{cccccc}
+		a2 & 0 & 0 & 0 & 0 & 0\\
+		0 & a6 & 0 & 0 & 0 & 0 \\
+		0 & 0 & a10 & 0 & 0 & 0 \\
+		0 & 0 & 0 & a14 & 0 & 0\\
+		0 & 0 & 0 & 0 & a18 & 0\\
+		0 & 0 & 0 & 0 & 0 & a22\\
+	\end{array}\right]
+\end{equation}
+\begin{equation}
+	\mathbf{A}_3=
+	\left[\begin{array}{cccccc}
+		a3 & 0 & 0 & 0 & 0 & 0 \\
+		0 & a7 & 0 & 0 & 0 & 0 \\
+		0 & 0 & a11 & 0 & 0 & 0\\
+		0 & 0 & 0 & a15 & 0 & 0\\
+		0 & 0 & 0 & 0 & a19 & 0\\
+		0 & 0 & 0 & 0 & 0 & a23\\
+	\end{array}\right]
+\end{equation}
+\begin{equation}
+	\mathbf{A}_3=
+	\left[\begin{array}{cccccc}
+		a4 & 0 & 0 & 0 & 0 & 0 \\
+		0 & a8 & 0 & 0 & 0 & 0 \\
+		0 & 0 & a12 & 0 & 0 & 0\\
+		0 & 0 & 0 & a16 & 0 & 0\\
+		0 & 0 & 0 & 0 & a20 & 0\\
+		0 & 0 & 0 & 0 & 0 & a24\\
+	\end{array}\right]
+\end{equation}
+将系数矩阵$ \boldsymbol{c}_i$重新组为6x4维:
+\begin{equation}
+	\left[\begin{array}{cccc}
+		c1 & c2 & c3 & c4\\ 
+		c5 & c6 & c7 & c8\\ 
+		c9 & c10 & c11 & c12\\ 
+		c13 & c14 & c15 & c16\\ 
+		c17 & c18 & c19 & c20\\ 
+		c21 & c22 & c23 & c24\\ 
+	\end{array}\right]
+\end{equation}
+将全部的控制系数保存为一个矩阵,即得到整体的系数矩阵 $ \boldsymbol{c}$, 在上述示例中为 6x295 维.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{构建残差项}
+\end{itemize}
+\begin{enumerate}[(1)]
+	\item 构建相机重投影误差项
+	\begin{equation}
+		\boldsymbol{e}_{k,i} := \boldsymbol{y}_k^i - \boldsymbol{\pi}(\boldsymbol{T}(\bar{t} + v_k^id)\boldsymbol{p}_k) = \boldsymbol{y}_k^i - \boldsymbol{\pi}(\boldsymbol{\Phi}(\bar{t} + v_k^id){\boldsymbol{c}}\boldsymbol{p}_k)
+	\end{equation}
+	权重矩阵为方差矩阵的逆。方差矩阵为
+	\begin{equation}
+		\begin{aligned}
+			bar{\boldsymbol{R}}_{k,i} &= \boldsymbol{A}_{k,i}\boldsymbol{R}_{k,i}{\boldsymbol{A}_{k,i}}^T \\
+			%
+			\boldsymbol{A}_{k,i} &= \left(
+			\begin{bmatrix} 
+				1 && 0\\
+				0 && 1
+			\end{bmatrix} 
+			+ \begin{bmatrix} 
+				0 && 1\\
+				0 && 1
+			\end{bmatrix}\boldsymbol{j}_{\boldsymbol{\pi}, v}^Td\dot{\boldsymbol{\Phi}}(t_k^i)\boldsymbol{c}\right) \\
+			%
+			\boldsymbol{R}_{k,i} &=\begin{bmatrix} 
+				n_{k,i}^u\\
+				n_{k,i}^v
+			\end{bmatrix} \\
+		\end{aligned}
+	\end{equation}
+	其中, $ \boldsymbol{J}_{\boldsymbol{\pi}} = [\boldsymbol{j}_{\boldsymbol{\pi},u}, \boldsymbol{j}_{\boldsymbol{\pi},v} ]^T $ 是投影方程 $ \boldsymbol{u}(t) := \boldsymbol{\pi}(\boldsymbol{T}({\bar{t} + vd})\boldsymbol{p}) $ 对姿态参数 $ \boldsymbol{x}(t) $ 的雅各比, $ \boldsymbol{j}_{\boldsymbol{\pi},u}, \boldsymbol{j}_{\boldsymbol{\pi},v} $分别为u, v方向上的分量. 以 pinhole-brown模型为例, 说明连续时间相机重投影误差的计算过程。用B样条表示连续时间下的相机位姿变换矩阵T, 
+	\begin{equation}
+		\begin{aligned}
+			&t = \bar{t} + vd \\
+			&\boldsymbol{T}(t) := \begin{bmatrix} 
+				\boldsymbol{C}(\boldsymbol{\psi}(t)) && \boldsymbol{t}(t) \\
+				\boldsymbol{0}^T  && 1
+			\end{bmatrix} 
+		\end{aligned}
+	\end{equation}
+	世界坐标系下的3D点 $ P(X,Y,Z)$ ,经过位姿变换矩阵 $ T \in SE(3) $,转换到相机坐标系下, 得到 $\boldsymbol{P_{cam}}(X_{cam}, Y_{cam}, Z_{cam})$.
+	\begin{equation}
+		\begin{bmatrix}  \boldsymbol{P_{cam}}  \\ 1 \end{bmatrix} = \boldsymbol{T}\begin{bmatrix}  \boldsymbol{P}  \\ 1 \end{bmatrix}
+	\end{equation}
+	相机坐标系的3D点进行归一化,得到归一化后的点 \\$ \boldsymbol{p_{norm}}(x,y,1) = (X_{cam}/Z_{cam}, Y_{cam}/Z_{cam}, Z_{cam}/Z_{cam})$. \\
+	由于畸变影响, 需要对归一化平面上的点进行畸变矫正, 得到矫正后的点 $\\ \boldsymbol{p_{corrected}}(x_{corrected}, y_{corrected}, 1)$ .
+	\begin{equation}
+		\left\{\begin{array}{l}
+			x_{\text {corrected }}=x\left(1+k_{1} r^{2}+k_{2} r^{4}+k_{3} r^{6}\right)+2 p_{1} x y+p_{2}\left(r^{2}+2 x^{2}\right) \\
+			y_{\text {corrected }}=y\left(1+k_{1} r^{2}+k_{2} r^{4}+k_{3} r^{6}\right)+p_{1}\left(r^{2}+2 y^{2}\right)+2 p_{2} x y
+		\end{array}\right.
+	\end{equation}
+	纠正后的归一化坐标经过内参后, 对应到2D图像上的像素坐标 $ \boldsymbol{p}(u,v) $.
+	\begin{equation}
+		\left\{\begin{array}{l}
+			u=f_{x} x_{corrected} + c_{x} \\
+			v=f_{y} y_{corrected} + c_{y}
+		\end{array}\right.
+	\end{equation}
+	投影到图像上的2D坐标和对应检测到的2D点坐标 $ \boldsymbol{p'}(u',v') $之差为重投影误差.
+	\begin{equation}
+		\boldsymbol{e} = \boldsymbol{p} - \boldsymbol{p'} =  (u - v) - (u', v')
+	\end{equation}
+	误差项对v的雅各比矩阵可以通过链式法则来求解:
+	\begin{equation}
+		\begin{aligned}
+			\frac{\partial{\boldsymbol{e}}}{\partial{v}}&= \frac{\partial{\boldsymbol{e}}}{\partial{\boldsymbol{p}}}
+			\cdot\frac{\partial{\boldsymbol{p}}}{\partial{\boldsymbol{p_{corrected}}}}
+			\cdot\frac{\partial{\boldsymbol{p_{corrected}}}}{\boldsymbol{\partial{p_{norm}}}}
+			\cdot\frac{\partial{\boldsymbol{p_{norm}}}}{\boldsymbol{\partial{P_{cam}}}}
+			\cdot\frac{\partial{\boldsymbol{P_{cam}}}}{\partial{\boldsymbol{\xi}}}
+			\cdot\frac{\partial{\boldsymbol{\xi}}}{\partial{v}} \\
+			&=\boldsymbol{J}_0\cdot\boldsymbol{J}_1\cdot\boldsymbol{J}_2\cdot\boldsymbol{J}_3\cdot\boldsymbol{J}_4\cdot\boldsymbol{J}_5
+		\end{aligned}
+	\end{equation}
+	其中,  $ \boldsymbol{\xi} = \left[t_1, t_2, t_3, r_1, r_2, r_3\right]^T $ 为位姿 T , $ \delta\boldsymbol{\xi} = \left[\delta t_1, \delta t_2, \delta t_3, \delta r_1, \delta r_2, \delta r_3 \right]^T$ 为位姿的增量.
+	各雅各比矩阵的推导过程如下:
+	\begin{equation}
+		\begin{aligned}
+			\boldsymbol{J}_0 &= \frac{\partial{\boldsymbol{e}}}{\partial{\boldsymbol{p}}} = \boldsymbol{I} \in R^{2\times2} \\
+			\boldsymbol{J}_1 &= \frac{\partial{\boldsymbol{p}}}{\partial{\boldsymbol{p_{corrected}}}} \\ \\
+			&= \begin{bmatrix} 
+				\frac{\partial{u}}{\partial{x_{corrected}}} & \frac{\partial{u}}{\partial{y_{corrected}}} \\ \\ 
+				\frac{\partial{v}}{\partial{x_{corrected}}} & \frac{\partial{v}}{\partial{y_{corrected}}} 
+			\end{bmatrix} \\ 
+			&= \begin{bmatrix} f_{x} & 0 \\ 0 & f_{y} \end{bmatrix} \in R^{2\times2} \\ 
+			\boldsymbol{J}_2 &= \frac{\partial{p_{corrected}}}{\partial{p_{norm}}} \\
+			&= \begin{bmatrix} 
+				\frac{\partial{x_{corrected}}}{\partial{x}} & \frac{\partial{x_{corrected}}}{\partial{y}} \\ \\ 
+				\frac{\partial{y_{corrected}}}{\partial{x}} & \frac{\partial{y_{corrected}}}{\partial{x}}
+			\end{bmatrix} \in  R^{2\times2} \\ 
+			%	
+			\boldsymbol{J}_3 &= \frac{\partial{p_{norm}}}{\partial{P_{cam}}} \\
+			&= \begin{bmatrix}
+				\frac{\partial{x}}{\partial{X_{cam}}} & \frac{\partial{x}}{\partial{Y_{cam}}} & \frac{\partial{x}}{\partial{Z_{cam}}} \\ 
+				\frac{\partial{y}}{\partial{X_{cam}}} & \frac{\partial{x}}{\partial{Y_{cam}}} & \frac{\partial{x}}{\partial{Z_{cam}}} 
+			\end{bmatrix} \\ 
+			&= \begin{bmatrix}
+				\frac{1}{Z_{cam}} & 0 & -\frac{X_{cam}}{Z_{cam}^2} \\ 
+				0 & \frac{1}{Z_{cam}} & -\frac{Y_{cam}}{Z_{cam}^2}
+			\end{bmatrix} \in  R^{2\times3} 
+		\end{aligned}
+	\end{equation}
+	其中，
+	\begin{equation}
+		\begin{aligned}
+			\frac{\partial{x_{corrected}}}{\partial{x}} &= 1 + k_{1} r^{2}+k_{2} r^{4}+k_{3} r^{6} + k_1 * 2 * x^2 + k_2 * (x^2 + y^2) * 4 * x^2 \\
+			&+ k_3 * (x^2 + y^2)^2 * 6 * x^2 + 2 * p_1 * y + 6 * p_2 * x
+			\\
+			\frac{\partial{y_{corrected}}}{\partial{x}} &= k_1 * 2 * xy + k_2 * 4 * (x^2 + y^2) * xy + 6 * k_3 * (x^2 + y^2)^2 * xy \\
+			&+ p_1 * 2 * x + 2 * p2 * y \\ 
+			\frac{\partial{x_{corrected}}}{\partial{y}} &= \frac{\partial{y_{corrected}}}{\partial{x}} \\
+			\frac{\partial{y_{corrected}}}{\partial{x}} &= 1 + k_{1} r^{2}+k_{2} r^{4}+k_{3} r^{6} + k_1 * 2 * y^2 + k_2 * (x^2 + y^2) * 4 * y^2 \\
+			&+ k_3 * (x^2 + y^2)^2 * 6 * y^2 + 6 * p_1 * y + 2 * p_2 * x; 
+		\end{aligned}
+	\end{equation}
+	\begin{equation}
+		\begin{aligned}
+			\boldsymbol{J}_4 = \frac{\partial{P_{cam}}}{\partial{\xi}} = \frac{\partial(\mathbf{T} \cdot \mathbf{P})}{\partial \boldsymbol{\xi}} 
+			= \frac{\partial\left(\begin{bmatrix} \boldsymbol{R}\boldsymbol{P} + \boldsymbol{t}  \\ 1 \end{bmatrix}  \right)}{\partial \left[\begin{array}{l} \delta\boldsymbol{t} \\ \delta\boldsymbol{r} \end{array}\right]}
+			= \begin{bmatrix} \boldsymbol{I}_3 & (\boldsymbol{RP})^{\wedge} \boldsymbol{J}_l  \\ \boldsymbol{0}^T   &  \boldsymbol{0}^T \end{bmatrix}  \in  R^{4\times6} 		
+		\end{aligned}
+	\end{equation}
+	对比SE(3)的左扰动模型, 可以看出,
+	\begin{equation}
+		\begin{aligned}
+			\boldsymbol{J}_4  = \begin{bmatrix} \boldsymbol{I}_3 & -(\boldsymbol{RP})^{\wedge} \boldsymbol{J}_l  \\ \boldsymbol{0}^T   &  \boldsymbol{0}^T  \end{bmatrix}
+			&= \begin{bmatrix} \boldsymbol{I}_3 & -(\boldsymbol{RP+t})^{\wedge}\\ 0^T  &  0^T \end{bmatrix}
+			\underbrace{\begin{bmatrix} \boldsymbol{I}_3 & \boldsymbol{t}^{\wedge} \boldsymbol{J}_l  \\ \boldsymbol{0}_3  &  \boldsymbol{J}_l \end{bmatrix}}_{JT} \\
+			&=\left[\begin{array}{cccccc}
+				1 & 0 & 0 & 0 & Z^{\prime} & -Y^{\prime} \\
+				0 & 1 & 0 & -Z^{\prime} & 0 & X^{\prime} \\
+				0 & 0 & 1 & Y^{\prime} & -X^{\prime} & 0 \\
+				0 & 0 & 0 & 0 & 0 & 0
+			\end{array}\right] JT \in \mathbb{R}^{4 \times 6}
+		\end{aligned}
+	\end{equation}
+	其中, $ \boldsymbol{r} = \theta\boldsymbol{a} $为旋转矩阵R对应的李代数.   $ \boldsymbol{J}_l = rac{sin(\theta)}{\theta}\boldsymbol{I} + (1- rac{sin(\theta)}{\theta} )\boldsymbol{a} \boldsymbol{a}^T + rac{1-cos(\theta)}{\theta} \boldsymbol{a}^{\wedge}  \in \mathbb{R}^{6 \times 6} $ 为SO(3)的左雅各比矩阵. 
+	\begin{equation}
+		\begin{aligned}
+			\boldsymbol{J}_5 = \frac{\partial{\boldsymbol{\xi}}}{\partial{v}}
+			= \frac{\partial { 
+					\left[\begin{array}{c}
+						\boldsymbol{t}  \\ \boldsymbol{r}
+					\end{array}\right] }} {\partial{v}} 
+			&= \frac{\partial {\left[\begin{array}{c}
+						\boldsymbol{\Phi}_{t}(t) \boldsymbol{c}_{t} \\ \boldsymbol{\Phi}_{\psi}(t) \boldsymbol{c}_{\psi})
+					\end{array}\right]}}{\partial{v}}  \\
+			&= \frac{\partial {\left[\begin{array}{c}
+						\boldsymbol{\Phi}_{t}(\bar{t} + vd) \boldsymbol{c}_{t} \\ \boldsymbol{\Phi}_{\psi}(\bar{t} + vd) \boldsymbol{c}_{\psi})
+					\end{array}\right]}}{\partial{v}}  \\
+			&= \left[\begin{array}{c}
+				\dot{\boldsymbol{\Phi}}_{t}(t) \boldsymbol{c}_{t} d \\ \dot{\boldsymbol{\Phi}}_{\psi}(t) \boldsymbol{c}_{\psi} d
+			\end{array}\right] \\
+			&= \dot{\boldsymbol{\Phi}}(t) \boldsymbol{c} d \in \mathbb{R}^{6 \times 1}
+		\end{aligned}
+	\end{equation}
+	至此, 可以得到各个雅各比矩阵, 将 $ \boldsymbol{j}_{\boldsymbol{\pi},v} = \boldsymbol{J}_0\cdot\boldsymbol{J}_1\cdot\boldsymbol{J}_2\cdot\boldsymbol{J}_3\cdot\boldsymbol{J}_4$, 代入误差项归一化过程, 可以得到重投影误差项的方差,实现误差项的归一化.
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\item 构建运动先验残差项
+	连续时间估计需要在每个时间段内有足够的信息来估计样条系数$\boldsymbol{c}$. 当测量值较少时, 会导致欠约束. 因此, 当测量值较少时, 可以通过引入一个运动先验来使得问题可解. 
+	在缺少测量值时, 假定传感器以一个极小的加速度运动. 因此, 可以选择运动先验为一个零均值的高斯过程 $ \ddot{\boldsymbol{x}} \sim \mathcal{G} \mathcal{P}\left(\mathbf{0}, \mathbf{Q} \delta\left(t-t^{\prime}\right)\right) $, 其中, $ \mathbf{Q} \delta\left(t-t^{\prime}\right) $ 为方差函数, $ \delta(\cdot) $ 为 Dirac’s delta function .
+	运动先验项仅在样条段内测量信息缺少的情况下有明显的影响. 权重设置一次, 并保持恒定. 这里取 $ \boldsymbol{Q} := diag(10^{-5}, 10^{-5}, 10^{-5}, 10^{-2}, 10^{-2}, 10^{-2}) $. 样条段内加速度建模为一个高斯过程, 即:
+	\begin{equation}
+		\ddot{\mathbf{t}}(t)=\mathbf{w}_{t}(t), \quad \ddot{\varphi}(t)=\mathbf{w}_{\varphi}(t)
+	\end{equation}
+	其中, $ \mathbf{w}_{i}(t) \sim \mathcal{G} \mathcal{P}\left(\mathbf{0}, \mathbf{Q}_{i} \delta\left(t-t^{\prime}\right)\right) $. 将两式合并到一起进行计算, 即
+	\begin{equation}
+		\ddot{\mathbf{x}}(t)= \begin{bmatrix} \ddot{\mathbf{t}}(t)  &  \ddot{\varphi}(t) \end{bmatrix} = \mathbf{w}_{x}(t)
+	\end{equation}
+	则运动先验的残差项:
+	\begin{equation}
+		\begin{aligned}
+			&\mathbf{e}_{u}(t) = \ddot{\boldsymbol{x}}(t)  = \ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c}  \\
+			&J_{u} :=\frac{1}{2} \int_{t_{0}}^{t_{K}} \mathbf{e}_{u}(\tau)^{T} \mathbf{Q}^{-1} \mathbf{e}_{u}(\tau) d \tau \\
+			& \quad\quad =\frac{1}{2} \int_{t_{0}}^{t_{K}}  (\ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c})^T  \mathbf{Q}^{-1} (\ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c}) d \tau  \\
+			& \quad\quad =\frac{1}{2} \int_{t_{0}}^{t_{K}}  \boldsymbol{c}^T \ddot{\boldsymbol{\Phi}}(t)^T  \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c} d \tau \\
+			& \quad\quad =\frac{1}{2} \boldsymbol{c}^T \left(\int_{t_{0}}^{t_{K}}\ddot{\boldsymbol{\Phi}}(t)^T  \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(t) d \tau \right) \boldsymbol{c}
+		\end{aligned}
+	\end{equation}
+	其中, $ rac{1}{2} \int_{t_{0}}^{t_{K}} \ddot{\boldsymbol{\Phi}}(t)^T  \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(t) $ 求解过程可参考. 运动先验残差项用于构建样条系数 $ \boldsymbol{c} $ 的约束, 下面介绍参数求解推导过程.
+	\begin{equation}
+		\begin{aligned}
+			&\mathbf{e}_{u}(t) = \ddot{\boldsymbol{x}}(t)  = \ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c}  \approx \underbrace{ \ddot{\boldsymbol{\Phi}}(t) \bar{\boldsymbol{c}} }_{=:\bar{\mathbf{e}}_{u}(t)} + \underbrace{\ddot{\boldsymbol{\Phi}}(t)}_{{\mathbf{E}}_{u}(t)} \delta\boldsymbol{c}.\\	
+			&J_{u} :=\frac{1}{2} \int_{t_{0}}^{t_{K}} \mathbf{e}_{u}(\tau)^{T} \mathbf{Q}^{-1} \mathbf{e}_{u}(\tau) d \tau \\
+			& \quad\quad =\frac{1}{2} \int_{t_{0}}^{t_{K}}\left(\overline{\mathbf{e}}_{u}(\tau)+\mathbf{E}_{u}(\tau) \delta \boldsymbol{c}\right)^{T} \mathbf{Q}^{-1}\left(\overline{\mathbf{e}}_{u}(\tau)+\mathbf{E}_{u}(\tau) \delta \boldsymbol{c}\right) d \tau  \\
+		\end{aligned}
+	\end{equation}
+	取 $ rac{\partial J_{u}}{\partial \delta \boldsymbol{c}}^{T} $, 得到:
+	\begin{equation}
+		\begin{aligned}
+			\int_{t_{0}}^{t_{K}} \mathbf{E}_{u}(\tau)^{T} \mathbf{Q}^{-1}\left(\overline{\mathbf{e}}_{u}(\tau)+\mathbf{E}_{u}(\tau) \delta \boldsymbol{c}\right) d \tau 
+			&= \underbrace{\int_{t_{0}}^{t_{K}} \mathbf{E}_{u}(\tau)^{T} \mathbf{Q}^{-1} \mathbf{E}_{u}(\tau) d \tau}_{=: \mathbf{A}_{u}} \delta \boldsymbol{c}+\underbrace{\int_{t_{0}}^{t_{K}} \mathbf{E}_{u}(\tau)^{T} \mathbf{Q}^{-1} \overline{\mathbf{e}}_{u}(\tau) d \tau}_{=\mathbf{b}_{u}} \\
+			&= \int_{t_{0}}^{t_{K}} {\ddot{\boldsymbol{\Phi}}(\tau)}^{T} \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(\tau) d \tau \delta \boldsymbol{c}+ \int_{t_{0}}^{t_{K}} {\ddot{\boldsymbol{\Phi}}(\tau)}^{T} \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c} d \tau \\
+			&=0
+		\end{aligned}
+	\end{equation}
+	从而:
+	\begin{equation}
+		\underbrace{\int_{t_{0}}^{t_{K}} {\ddot{\boldsymbol{\Phi}}(\tau)}^{T} \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(\tau) d \tau}_{A_u} \delta \boldsymbol{c} = \underbrace{-\int_{t_{0}}^{t_{K}} {\ddot{\boldsymbol{\Phi}}(\tau)}^{T} \mathbf{Q}^{-1} \ddot{\boldsymbol{\Phi}}(t) \boldsymbol{c} d \tau}_{b_u} 
+	\end{equation}
+	上式中, $ A_u $ 为 Hessian矩阵, 根据上式可以求解得到样条系数矩阵的增量$ \delta\boldsymbol{c} $
+\end{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+	\item \textbf{自适应节点更新策略}
+\end{itemize}
+在缺少测量信息时, 为了使求解问题 well-defined, 引入弱运动先验项, 但是这样会引入一个bias. 为了解决这个问题, 需要确定合适的konts数目. 论文采用自适应节点更新策略来调整knots的数目直到残差满足其理论值. 即归一化的高斯误差项(误差项归一化过程可参考，应满足:
+\begin{equation}
+	\mathbb{E}[\boldsymbol{e}_{k,i}^T\bar{\boldsymbol{R}}_{k,i}^{-1}\boldsymbol{e}_{k,i}] = \mathbb{E}[\bar{\boldsymbol{e}}_{k,i}^T\bar{\boldsymbol{e}}_{k,i}] = n
+\end{equation}
+其中, $ \bar{\boldsymbol{e}}_{k,i}\sim\mathcal{N}(\boldsymbol{0}, \boldsymbol{1})$, n为误差项的维度. 在这里, n=2, 因此, 误差项的期望为:
+\begin{equation}
+	\mathbb{E}[\boldsymbol{J}] = \sum_{i=0}^{N}\mathbb{E}[\bar{\boldsymbol{e}}_{k,i}^T\bar{\boldsymbol{e}}_{k,i}] = 2N
+\end{equation}
+其中, N为重投影误差项的数量. 为了检测过拟合, 可以比较$ J $和其期望值$\mathbb{E}[J] $.  当样条段的 $ J > \mathbb{E}[J] $时, 则表明样条没有足够的knots来表示该段的运动, 因此增加该段的节点. $ t_{new} = rac{1}{2}(t_{j-1} + t_{j}) $ 其中, $ t_{j} $表示第j个节点.注意, 节点数目一般设置偏少,然后通过上面的判断规则, 进行节点更新策略.

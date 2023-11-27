@@ -126,6 +126,8 @@
 \usepackage{tikz}                    
 \usepackage{tikz-3dplot}
 \usetikzlibrary{shapes,arrows,positioning}
+
+\usepackage{amssymb}
 %===================   正文开始    ===================
 \begin{document}
 	\bibliographystyle{gbt7714-2005}     %论文引用格式
@@ -163,16 +165,17 @@
 	\thispagestyle{empty}
 	%============== 论文正文   =================
 	\pagestyle{fancy}
-	\include{body/chapter1}      %
-	\include{body/chapter2}
-	\include{body/chapter3}
-	\include{body/chapter4}
-	\include{body/chapter5}
-	\include{body/chapter6}
-	\include{body/chapter7}
-	\include{body/chapter8}
-	\include{body/chapter9}
-	\include{body/chapter10_calibx}
+	\include{body/math}      %
+	\include{body/camera}
+	\include{body/structuredLight}
+	\include{body/tof}
+	\include{body/imu}
+	\include{body/lidar}
+	\include{body/wheelOdom}
+	\include{body/gps}
+	\include{body/calibrationTarget}
+	\include{body/calibx}
+	\include{body/multiSensors}
 	%============= 参考文献 =====================
 	\addcontentsline{toc}{section}{参考文献}
 	\bibliography{bibfile}
