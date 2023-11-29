@@ -1,13 +1,20 @@
-\section{标定板}
-\subsection{Apriltag}
+\section{标定设备和标定环境}
+\subsection{标定板}
+\subsubsection{Apriltag}
 
-\subsection{RandomGrid}
-\subsubsection{创建标定板}
+\subsubsection{RandomGrid}
+\begin{itemize}
+	\item \textbf{创建标定板}
+\end{itemize}
+
 \subsubsection{特征点检测}
+\begin{itemize}
+	\item \textbf{特征点检测}
+\end{itemize}
 圆点检测的流程如图\ref{fig:RandomGridDetection}所示。
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.9\textwidth]{figure/cp5/flow_chart}
+	\includegraphics[width=0.9\textwidth]{figure/target/flow_chart}
 	\caption{圆点检测流程。}
 	\label{fig:RandomGridDetection}
 \end{figure}
@@ -42,7 +49,7 @@
 \end{algorithm}
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.7\textwidth]{figure/cp5/integrate_graph}
+	\includegraphics[width=0.7\textwidth]{figure/target/integrate_graph}
 	\caption{基于积分图自适应二值化算法结果。}
 	\label{fig:AdaptiveThreshold}
 \end{figure}
@@ -52,7 +59,7 @@
 打标签如图\ref{fig:label}。实际上就是把属于同一个圆的像素标记相同的标签。
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.7\textwidth]{figure/cp5/label}
+	\includegraphics[width=0.7\textwidth]{figure/target/label}
 	\caption{基于二值图的打标签算法结果。}
 	\label{fig:label}
 \end{figure}
@@ -91,7 +98,7 @@ l^{T} \mathbf{C}^* l=0
 其中，$l=(a,b,c)^T$是正切于二次曲线的直线， $\mathbf{C}^*=\mathbf{C}^{-1}$。注意，由于$\mathbf{C}$使对称矩阵，所有$\mathbf{C}^*$也是对称矩阵。以椭圆为例，其正切曲线如图\ref{fig:dual_conic}所示。\\
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.7\textwidth]{figure/cp5/dual_conic}
+	\includegraphics[width=0.7\textwidth]{figure/target/dual_conic}
 	\caption{垂直于椭圆梯度向量的直线与椭圆相切。}
 	\label{fig:dual_conic}
 \end{figure}
@@ -162,7 +169,7 @@ l_{i}=\left[I_{l i i}, I_{i j},-\nabla I_{i}^{T} x_{i}\right]^{T}
 圆形角点最邻域分析的目的是通过遍历每个圆形角点和其他角点的距离，然后进行从小到大的排序，得到当前角点最近邻域的八个角点。如图\ref{fig:ClosestPoints}所示，角点最近邻域分析的最终目的是正确得到角点ID-128的最近邻八个角点：ID-155、154、153、129、127、103、102、101。圆形角点最邻域分析通过计算角点间的马氏距离来分析。距离计算采用的不是欧式距离，而是马氏距离。原因如下所示：在标定板上，ID-128最近的八个邻域角点ID为155、154、153、129、127、103、102、101；由于相机视角原因成像后，ID-155-128-101的之间欧式距离明显大于ID-153-128-103，在某些畸变严重时，ID-128-101的欧式距离会大于ID-128-152的欧式距离，导致距离排序时最小的八个角点不是标定板正确的8个最近邻角点，所以采用马氏距离代替欧式距离，马氏距离的权重根据每个圆形角点椭圆长短轴进行调整，这样就能保证得到正确的最近邻角点，为接下来的处理做了数据准备。
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figure/cp5/ClosestPoints}
+	\includegraphics[width=0.8\textwidth]{figure/target/ClosestPoints}
 	\caption{圆最近邻域分析}
 	\label{fig:ClosestPoints}
 \end{figure}
@@ -179,7 +186,7 @@ l_{i}=\left[I_{l i i}, I_{i j},-\nabla I_{i}^{T} x_{i}\right]^{T}
 \end{enumerate}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figure/cp5/FindTriples}
+	\includegraphics[width=0.8\textwidth]{figure/target/FindTriples}
 	\caption{圆最近邻三点线段分析}
 	\label{fig:FindTriples}
 \end{figure}
@@ -212,7 +219,7 @@ l_{i}=\left[I_{l i i}, I_{i j},-\nabla I_{i}^{T} x_{i}\right]^{T}
 即根据0-1编码规则，网格化二维矩阵修改为如下矩阵，矩阵1代表大圆，0代表小圆。如图\ref{fig:code01}所示，二维矩阵对应图像，-1将二维矩阵充满，代表此处无角点信息。
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figure/cp5/code01}
+	\includegraphics[width=0.8\textwidth]{figure/target/code01}
 	\caption{0-1编码矩阵}
 	\label{fig:code01}
 \end{figure}
@@ -226,7 +233,7 @@ l_{i}=\left[I_{l i i}, I_{i j},-\nabla I_{i}^{T} x_{i}\right]^{T}
 最终结果如图\ref{fig:RandomGrid}所示。
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figure/cp5/RandomGrid}
+	\includegraphics[width=0.8\textwidth]{figure/target/RandomGrid}
 	\caption{RandomGrid检测结果}
 	\label{fig:RandomGrid}
 \end{figure}

@@ -4,7 +4,7 @@ CalibX标定系统由软件系统和硬件系统组成。
 硬件系统如图\ref{moon2_device}所示。该硬件系统主要由机械臂、标定板、光源、计算机及显示器、供电系统等组成。
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp10/moon2_device}
+	\includegraphics[width=1\textwidth]{figure/target/moon2_device}
 	\caption{CalibX硬件系统}
 	\label{moon2_device}
 \end{figure}
@@ -19,12 +19,12 @@ CalibX标定系统由软件系统和硬件系统组成。
 	\centering
 	\begin{minipage}{0.45\linewidth}
 		\centering
-		\subfigure[标定手机]{\includegraphics[width=\linewidth,height=8cm]{figure/cp10/cellphone}}
+		\subfigure[标定手机]{\includegraphics[width=\linewidth,height=8cm]{figure/target/cellphone}}
 		\label{fig:subcaption1}
 	\end{minipage}\qquad
 	\begin{minipage}{0.45\linewidth}
 		\centering
-		\subfigure[标定眼镜]{\includegraphics[width=\linewidth,height=8cm]{figure/cp10/ar_glass}}
+		\subfigure[标定眼镜]{\includegraphics[width=\linewidth,height=8cm]{figure/target/ar_glass}}
 		\label{fig:subcaption2}
 	\end{minipage}
 	\caption{CalibX标定系统标定产品样例}
@@ -34,7 +34,7 @@ CalibX标定系统由软件系统和硬件系统组成。
 软件系统如图\ref{fig:calibx_framework}所示。整个标定系统主要包含四个模块：IMU噪声标定、静态相机标定、卷帘(rolling shutter，简称RS)RS标定和Visual-Inertial（VI）联标。
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp10/calibx_framework}
+	\includegraphics[width=1\textwidth]{figure/target/calibx_framework}
 	\caption{CalibX硬件系统}
 	\label{fig:calibx_framework}
 \end{figure}
@@ -54,22 +54,22 @@ CalibX标定系统由软件系统和硬件系统组成。
 	\centering
 	\begin{minipage}{0.45\linewidth}
 		\centering
-		\subfigure[棋盘格]{\includegraphics[width=5cm]{figure/cp10/chessboard}}
+		\subfigure[棋盘格]{\includegraphics[width=5cm]{figure/target/chessboard}}
 		\label{fig:chessboard}
 	\end{minipage}\qquad
 	\begin{minipage}{0.45\linewidth}
 		\centering
-		\subfigure[CircleGrid]{\includegraphics[width=5cm]{figure/cp10/circlegrid}}
+		\subfigure[CircleGrid]{\includegraphics[width=5cm]{figure/target/circlegrid}}
 		\label{fig:circlegrid}
 	\end{minipage}
 	\begin{minipage}{0.45\linewidth}
 		\centering
-		\subfigure[Apriltag]{\includegraphics[width=5cm]{figure/cp10/apriltag}}
+		\subfigure[Apriltag]{\includegraphics[width=5cm]{figure/target/apriltag}}
 		\label{fig:apriltag}
 	\end{minipage}\qquad
 	\begin{minipage}{0.45\linewidth}
 		\centering
-		\subfigure[RandomGrid]{\includegraphics[width=5cm]{figure/cp10/randomgrid}}
+		\subfigure[RandomGrid]{\includegraphics[width=5cm]{figure/target/randomgrid}}
 		\label{fig:randomgrid}
 	\end{minipage}
 	\caption{CalibX标定系统支持的标定板}
@@ -585,13 +585,13 @@ $ g(x + \delta x) * p' $
 \end{enumerate}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp4/gs_imu_cam_timeshift}
+	\includegraphics[width=1\textwidth]{figure/calibx/gs_imu_cam_timeshift}
 	\caption{全局曝光相机timeshift}
 	\label{fig:gs-timeshift}
 \end{figure}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp4/rs_imu_cam_timeshift}
+	\includegraphics[width=1\textwidth]{figure/calibx/rs_imu_cam_timeshift}
 	\caption{卷帘曝光相机timeshift}
 	\label{fig:rs-timeshift}
 \end{figure}
@@ -615,7 +615,7 @@ timeshift的标定分为两步, 初始化 + 优化.
 \end{enumerate}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp4/correlation}
+	\includegraphics[width=1\textwidth]{figure/calibx/correlation}
 	\caption{相机标定流程图}
 	\label{fig:correlation}
 \end{figure}

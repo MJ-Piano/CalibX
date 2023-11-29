@@ -87,7 +87,7 @@ y
 如图\ref{kb model}所示。
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.5\textwidth]{figure/cp2/ds}
+	\includegraphics[width=0.5\textwidth]{figure/cam/ds}
 	\caption{\textbf{KB}模型。$X_c-Y_c-Z_c$表示相机坐标系，$P$为相机坐标系下的三维点，$x,y$表示图像坐标系}
 	\label{kb model}
 \end{figure}
@@ -270,7 +270,7 @@ x' = r*x_d/\theta_d, y' = r*y_d/\theta_d
 其中，$\sigma_{ij}$为观测协方差的逆。
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp2/calibrate_camera}
+	\includegraphics[width=1\textwidth]{figure/cam/calibrate_camera}
 	\caption{相机标定流程图}
 	\label{camera_calibration_framework}
 \end{figure}
@@ -316,13 +316,13 @@ overlapped: 在上一行数据readout未完成时就开始进行下一行的曝�
 显然， overlapped类型更有利。
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp3/no_overlapped}
+	\includegraphics[width=1\textwidth]{figure/cam/no_overlapped}
 	\caption{non-overlapped}
 	\label{non-overlapped}
 \end{figure}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{figure/cp3/overlapped}
+	\includegraphics[width=1\textwidth]{figure/cam/overlapped}
 	\caption{overlapped}
 	\label{overlapped}
 \end{figure}
@@ -487,7 +487,7 @@ RS相机标定通过最小化重投影误差来优化求解未知参数. 代价�
 \subsubsection{RS相机标定流程}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.5\textwidth]{figure/cp3/rs_calib_pipeline}
+	\includegraphics[width=0.5\textwidth]{figure/cam/rs_calib_pipeline}
 	\caption{RS相机标定流程}
 	\label{rs-calib-pipeline}
 \end{figure}
