@@ -52,13 +52,6 @@ y_d=(v-c_y)/f_y
 	\KwIn{畸变点$\mathbf{p}_d=(x_d,y_d)^T$,畸变系数$k_1, k_2, k_3, p_1, p_2$}%输入参数
 	\KwOut{去畸变点$\mathbf{p'}=(x',y')^T$}%输出
 	设置阈值$\epsilon$，设置初始化去畸变点$\mathbf{p'}=\mathbf{p}_d$，设置迭代次数$N$\; %\;用于换行
-%	$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
-%	$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
-%	\While{$\left\| \mathbf{p'}+(\Delta x_d,\Delta y_d)^T-\mathbf{p}_d\right\|_1>\epsilon$ and \mbox{迭代次数小于$N$}}{
-%		$\mathbf{p'} = \mathbf{p}_d-(\Delta x_d,\Delta y_d)^T$\;
-%		$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
-%		$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;
-%	}
 	\Do{$\left\| \mathbf{p'}+(\Delta x_d,\Delta y_d)^T-\mathbf{p}_d\right\|_1>\epsilon$ and \mbox{迭代次数小于$N$}}{
 		$\Delta x_d = x'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_1x'*y'+p_2*(r^2+2*x'^2)$ \;
 		$\Delta y_d = y'*(k_1*r^2+k_2*r^4+k_3*r^6)+2*p_2x'*y'+p_1*(r^2+2*y'^2)$ \;

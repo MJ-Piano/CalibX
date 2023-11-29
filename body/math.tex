@@ -1,5 +1,6 @@
 \pagenumbering{arabic}
 \section{数学基础}
+\subsection{位姿及其表示方式}
 
 \subsection{样条}
 \subsubsection{B-Spline基本概念}
@@ -381,6 +382,8 @@ $\mathbf{C} \in \mathbb{R}^{k \times k}$是一个常值矩阵.
 	\boldsymbol{\Omega}_i=\operatorname{Log} \left(\overline{\mathbf{T}}_{i-1}^{-1} \overline{\mathbf{T}}_i\right)
 \end{equation}
 $\left\{\overline{\mathbf{T}}_l\right\}_{l=\{0, \ldots, M\}}, \overline{\mathbf{T}}_l \in \mathrm{SE}(3)$是样条的控制点，表示位姿。变换$\operatorname{Exp}:\mathbb{R}^6 \rightarrow \mathrm{SE}(3)$，即将6维向量转成位姿矩阵。其逆变换为$\operatorname{Log}:\mathrm{SE}(3) \rightarrow \mathbb{R}^6$，即将位姿矩阵转成6维向量。
+
+\subsection{非线性优化}
 
 
 
