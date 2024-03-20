@@ -1,5 +1,5 @@
-\section{普通相机标定}
-\subsection{相机模型}
+\section{普通相机}
+\subsection{根据FOV分类}
 
 \subsubsection{普通相机}
 普通相机相机模型是简化的OpenCV的针孔相机模型\cite{opencvfisheye}。以下以pinhole-brwon模型为例。
@@ -60,6 +60,9 @@ y_d=(v-c_y)/f_y
 \end{algorithm}
 pinhole-brown模型去掉$k_3$，即为pinhole-radtan模型。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{广角相机}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \subsubsection{鱼眼相机}
 Calib-X支持的广角/鱼眼相机模型为pinhole-equidistant。该模型源自Kannala-Brandt Camera Model\cite{kannala2006generic}（简称为\textbf{KB}模型）。
 \begin{enumerate}[(1)]
@@ -252,64 +255,14 @@ x' = r*x_d/\theta_d, y' = r*y_d/\theta_d
 	$scale = tan(\theta)/\theta_d$ \;
 	$\mathbf{p'}=\mathbf{p}_d*scale$
 \end{algorithm}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{单相机标定}
-\subsubsection{单标定板单相机标定}
-假设$\mathbf{m}_j=(X,Y,Z)^T, j=1...M$为世界坐标系下的三维点，$\mathbf{T}_i=\{\mathbf{R}_i,\mathbf{t}_i\}$为$i$时刻世界坐标系到相机坐标系的转换矩阵，$\mathbf{m}_{ij}$为特征点$\mathbf{m}_j$在$i$时刻的观测， $\mathbf{K}$为相机内参矩阵。相机标定通过最小化重投影误差来实现。首先，将点$\mathbf{m}_j$转到相机坐标系，
-\begin{equation}
-	\mathbf{p}_j = \mathbf{R}_i*\mathbf{m}_j+\mathbf{t}_i
-\end{equation}
-利用相机的正向模型，得到点$\mathbf{p}_j$在$i$时刻的观测，即图像坐标，
-\begin{equation}
-	\hat{\mathbf{m}}_{ij} = \pi(\mathbf{R}_i,\mathbf{t}_i, \mathbf{m}_j)
-\end{equation}
-重投影误差为，
-\begin{equation}
-	\mathbf{r}_{ij}=\sigma_{ij}*(\hat{\mathbf{m}}_{ij} - \mathbf{m}_{ij})
-\end{equation}
-其中，$\sigma_{ij}$为观测协方差的逆。
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=1\textwidth]{figure/cam/calibrate_camera}
-	\caption{相机标定流程图}
-	\label{camera_calibration_framework}
-\end{figure}
-总的优化目标函数定义为，
-\begin{equation}
-\{\mathbf{R}^*,\mathbf{t}^*, \mathbf{m}^*, \mathbf{K}^*\}=\mathop{\arg\min}_{\mathbf{R},\mathbf{t}, \mathbf{m}, \mathbf{K}} \ \ \sum_{i=1}^{N} \sum_{j=1}^{M} \| \mathbf{r}_{ij}\|.
-\end{equation}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{多标定板单相机标定}
-对于使用多标定板的情形，需要选择一块标定板作为参考并且以参考标定板的坐标系作为世界坐标系。记参考标定板的ID为$0$，第$b$个标定板到参考标定板的转换矩阵为$\mathbf{T}_{0b}=\{\mathbf{R}_{0b},\mathbf{t}_{0b}\}$。显然，$\mathbf{T}_{00}=\{\mathbf{I}_3,(0,0,0)^T\}$。假设$\mathbf{m}_{bj}=(X,Y,Z)^T, j=1...M_b$为$b$标定板所在坐标系下的三维点，则把$\mathbf{m}_{bj}$转换到世界坐标系为，
-\begin{equation}
-\mathbf{p}_{bj} = \mathbf{R}_{0b}*\mathbf{m}_{bj}+\mathbf{t}_{0b}
-\end{equation}
-\subsection{多相机标定}
-\subsubsection{重叠视场多相机标定}
-相机之间的连接关系是通过无向有权图来表示的，图的顶点表示相机。假设所有相机帧率相同并且都是在相同的时刻触发曝光。如果两个相机在某一时刻看到相同的特征点（简称为共视点），则该两个相机在图中有边连接。所有时刻共视点的数目之和作为两个相机之间边的权重。重叠视场的假设是，对于任意两个相机存在路径可达。根据无向有权图求解相机最优路径（optimal path）的见算法\ref{alg:overlap-cams-graph}。\\
-\begin{algorithm}[H]
-	\caption{重叠视场多相机标定相机链条构建}%算法名字
-	\label{alg:overlap-cams-graph}
-	\LinesNumbered %要求显示行号
-	\KwIn{无向有权图$\mathbf{G}=\{\mathbf{V},\mathbf{E}\}$，假设有$C$个顶点，即$C$个相机}%输入参数
-	\KwOut{相机最优路径（optimal path）}%输出
-	将$\mathbf{E}$中的权重取倒数\; %\;用于换行
-	利用Dijkstra算法求出顶点$V_0$到任意一个顶点的 $V_c$的最短路径 \;
-	利用所有最短路径和顶点构成新的图$\mathbf{G}'$ \;
-	\For{$j=0; j<C-1; ++j$}{
-		利用Dijkstra算法求出顶点$V_j$到任意一个顶点的 $V_{j+1}$的最短路径$P_j$\;	
-		$P_j$添加到optimal path	
-	}
-\end{algorithm}
-根据最优路径，即可构建相机链条（baselines）。相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。实际上，仅优化相机0的外参$\mathbf{T}_0$。通过$\mathbf{T}_0$和$\mathbf{B}$可以求解任一相机的外参，即$i$时刻，世界坐标系到相机c的相机坐标系的转换矩阵$\mathbf{T}_{ci}$为，
-\begin{equation}
-	\mathbf{T}_{ci}=\mathbf{B}_{c-1}*\dots*\mathbf{B}_0*\mathbf{T}_{0i}
-\end{equation}
-\subsubsection{无重叠视场多相机标定}
-无重叠视场多相机标定使用手眼标定方法初始化相机链条，即假设相机c的外参为$\mathbf{T}_c=\{\mathbf{T}_{c0},\mathbf{T}_{c1}\dots\}$，相机a的外参为$\mathbf{T}_a=\{\mathbf{T}_{a0},\mathbf{T}_{a1}\dots\}$。手眼标定旨在寻找一个最优的转换矩阵$\mathbf{B}_{ca}$，使得$\mathbf{T}_a$和$\mathbf{T}_c$对齐误差最小。需要注意的是，手眼标定要求$\mathbf{T}_a$和$\mathbf{T}_c$外参数目一致。对于使用OpenCV进行单板单相机标定中，标定板并不能保证任意时刻都能看到。因此，在使用OpenCV进行单板单相机标定后，再使用所有标定板的观测，重新计算相机外参以保证所有时刻的相机外参都能求解出来。实际上，相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。同样的，仅优化相机0的外参$\mathbf{T}_0$。
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{360相机}
 
-\subsection{卷帘相机标定}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{根据曝光模式分类}
+\subsubsection{全局曝光相机}
+\subsubsection{卷帘相机}
 消费级设备由于带宽的限制, 相机传感器的readout设计为逐行读取, 然后拼接成一张完整的图像, 这就会产生所谓的“果冻效应”。RS（rolling shutter)一般可以分为两种类型:\\
 non-overlapped: 在时间轴上读完一行后再进行下一行的曝光， 整个流程呈级联形式。\\
 overlapped: 在上一行数据readout未完成时就开始进行下一行的曝光， 整个流程呈pipeline形式。\\
@@ -327,7 +280,7 @@ overlapped: 在上一行数据readout未完成时就开始进行下一行的曝�
 	\label{overlapped}
 \end{figure}
 RS相机标定算法标定overlapped类型中的line delay。
-\subsubsection{RS相机标定理论}
+%\subsubsection{RS相机标定理论}
 \begin{itemize}
 	\item \textbf{RS相机标定原理}
 \end{itemize}
@@ -336,7 +289,7 @@ RS相机标定算法标定overlapped类型中的line delay。
 	t = \bar{t} + vd
 \end{equation}
 RS相机标定基于给定的landmark, 通过构建连续时间的透视投影模型来同步估计相机位姿和line delay\cite{6619023}。
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{itemize}
 	\item \textbf{连续时间的位姿参数化}
 \end{itemize}
@@ -484,7 +437,7 @@ RS相机标定通过最小化重投影误差来优化求解未知参数. 代价�
 旋转采用角轴进行参数化,角轴在$2k\pi$处会有奇异性. 对于离散估计, 这个奇异性不重要. 对于连续运动, 由于上一次旋转和本次旋转量相差不大, 因此为了保证旋转的连续性, 可以将旋转增加成等价参数化形式.
 求解最小二乘问题采用DogLeg实现,稀疏矩阵求解采用CHOLMOD.
 运动先验残差项和自适应节点更新策略介绍可见详细算法流程
-\subsubsection{RS相机标定流程}
+%\subsubsection{RS相机标定流程}
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.5\textwidth]{figure/cam/rs_calib_pipeline}
@@ -892,7 +845,7 @@ RS相机标定通过最小化重投影误差来优化求解未知参数. 代价�
 	\end{equation}
 	上式中, $ A_u $ 为 Hessian矩阵, 根据上式可以求解得到样条系数矩阵的增量$ \delta\boldsymbol{c} $
 \end{enumerate}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{itemize}
 	\item \textbf{自适应节点更新策略}
 \end{itemize}
@@ -905,3 +858,60 @@ RS相机标定通过最小化重投影误差来优化求解未知参数. 代价�
 	\mathbb{E}[\boldsymbol{J}] = \sum_{i=0}^{N}\mathbb{E}[\bar{\boldsymbol{e}}_{k,i}^T\bar{\boldsymbol{e}}_{k,i}] = 2N
 \end{equation}
 其中, N为重投影误差项的数量. 为了检测过拟合, 可以比较$ J $和其期望值$\mathbb{E}[J] $.  当样条段的 $ J > \mathbb{E}[J] $时, 则表明样条没有足够的knots来表示该段的运动, 因此增加该段的节点. $ t_{new} = rac{1}{2}(t_{j-1} + t_{j}) $ 其中, $ t_{j} $表示第j个节点.注意, 节点数目一般设置偏少,然后通过上面的判断规则, 进行节点更新策略.
+
+\subsubsection{事件相机}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{单相机标定}
+\subsubsection{单标定板单相机标定}
+假设$\mathbf{m}_j=(X,Y,Z)^T, j=1...M$为世界坐标系下的三维点，$\mathbf{T}_i=\{\mathbf{R}_i,\mathbf{t}_i\}$为$i$时刻世界坐标系到相机坐标系的转换矩阵，$\mathbf{m}_{ij}$为特征点$\mathbf{m}_j$在$i$时刻的观测， $\mathbf{K}$为相机内参矩阵。相机标定通过最小化重投影误差来实现。首先，将点$\mathbf{m}_j$转到相机坐标系，
+\begin{equation}
+	\mathbf{p}_j = \mathbf{R}_i*\mathbf{m}_j+\mathbf{t}_i
+\end{equation}
+利用相机的正向模型，得到点$\mathbf{p}_j$在$i$时刻的观测，即图像坐标，
+\begin{equation}
+	\hat{\mathbf{m}}_{ij} = \pi(\mathbf{R}_i,\mathbf{t}_i, \mathbf{m}_j)
+\end{equation}
+重投影误差为，
+\begin{equation}
+	\mathbf{r}_{ij}=\sigma_{ij}*(\hat{\mathbf{m}}_{ij} - \mathbf{m}_{ij})
+\end{equation}
+其中，$\sigma_{ij}$为观测协方差的逆。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/cam/calibrate_camera}
+	\caption{相机标定流程图}
+	\label{camera_calibration_framework}
+\end{figure}
+总的优化目标函数定义为，
+\begin{equation}
+	\{\mathbf{R}^*,\mathbf{t}^*, \mathbf{m}^*, \mathbf{K}^*\}=\mathop{\arg\min}_{\mathbf{R},\mathbf{t}, \mathbf{m}, \mathbf{K}} \ \ \sum_{i=1}^{N} \sum_{j=1}^{M} \| \mathbf{r}_{ij}\|.
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{多标定板单相机标定}
+对于使用多标定板的情形，需要选择一块标定板作为参考并且以参考标定板的坐标系作为世界坐标系。记参考标定板的ID为$0$，第$b$个标定板到参考标定板的转换矩阵为$\mathbf{T}_{0b}=\{\mathbf{R}_{0b},\mathbf{t}_{0b}\}$。显然，$\mathbf{T}_{00}=\{\mathbf{I}_3,(0,0,0)^T\}$。假设$\mathbf{m}_{bj}=(X,Y,Z)^T, j=1...M_b$为$b$标定板所在坐标系下的三维点，则把$\mathbf{m}_{bj}$转换到世界坐标系为，
+\begin{equation}
+	\mathbf{p}_{bj} = \mathbf{R}_{0b}*\mathbf{m}_{bj}+\mathbf{t}_{0b}
+\end{equation}
+\subsection{多相机标定}
+\subsubsection{重叠视场多相机标定}
+相机之间的连接关系是通过无向有权图来表示的，图的顶点表示相机。假设所有相机帧率相同并且都是在相同的时刻触发曝光。如果两个相机在某一时刻看到相同的特征点（简称为共视点），则该两个相机在图中有边连接。所有时刻共视点的数目之和作为两个相机之间边的权重。重叠视场的假设是，对于任意两个相机存在路径可达。根据无向有权图求解相机最优路径（optimal path）的见算法\ref{alg:overlap-cams-graph}。\\
+\begin{algorithm}[H]
+	\caption{重叠视场多相机标定相机链条构建}%算法名字
+	\label{alg:overlap-cams-graph}
+	\LinesNumbered %要求显示行号
+	\KwIn{无向有权图$\mathbf{G}=\{\mathbf{V},\mathbf{E}\}$，假设有$C$个顶点，即$C$个相机}%输入参数
+	\KwOut{相机最优路径（optimal path）}%输出
+	将$\mathbf{E}$中的权重取倒数\; %\;用于换行
+	利用Dijkstra算法求出顶点$V_0$到任意一个顶点的 $V_c$的最短路径 \;
+	利用所有最短路径和顶点构成新的图$\mathbf{G}'$ \;
+	\For{$j=0; j<C-1; ++j$}{
+		利用Dijkstra算法求出顶点$V_j$到任意一个顶点的 $V_{j+1}$的最短路径$P_j$\;	
+		$P_j$添加到optimal path	
+	}
+\end{algorithm}
+根据最优路径，即可构建相机链条（baselines）。相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。实际上，仅优化相机0的外参$\mathbf{T}_0$。通过$\mathbf{T}_0$和$\mathbf{B}$可以求解任一相机的外参，即$i$时刻，世界坐标系到相机c的相机坐标系的转换矩阵$\mathbf{T}_{ci}$为，
+\begin{equation}
+	\mathbf{T}_{ci}=\mathbf{B}_{c-1}*\dots*\mathbf{B}_0*\mathbf{T}_{0i}
+\end{equation}
+\subsubsection{无重叠视场多相机标定}
+无重叠视场多相机标定使用手眼标定方法初始化相机链条，即假设相机c的外参为$\mathbf{T}_c=\{\mathbf{T}_{c0},\mathbf{T}_{c1}\dots\}$，相机a的外参为$\mathbf{T}_a=\{\mathbf{T}_{a0},\mathbf{T}_{a1}\dots\}$。手眼标定旨在寻找一个最优的转换矩阵$\mathbf{B}_{ca}$，使得$\mathbf{T}_a$和$\mathbf{T}_c$对齐误差最小。需要注意的是，手眼标定要求$\mathbf{T}_a$和$\mathbf{T}_c$外参数目一致。对于使用OpenCV进行单板单相机标定中，标定板并不能保证任意时刻都能看到。因此，在使用OpenCV进行单板单相机标定后，再使用所有标定板的观测，重新计算相机外参以保证所有时刻的相机外参都能求解出来。实际上，相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。同样的，仅优化相机0的外参$\mathbf{T}_0$。

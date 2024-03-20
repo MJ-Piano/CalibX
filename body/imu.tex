@@ -1,15 +1,158 @@
 \section{IMU及其标定}
 
 \subsection{IMU}
-\subsubsection{IMU类型}
-\subsubsection{IMU建模}
+\subsubsection{IMU简单建模}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{figure/imu/imu_simple}
+	\caption{IMU简单建模}
+	\label{fig:imu-simple}
+\end{figure}
+IMU的测量模型简单建模如图\ref{fig:imu-simple}所示，IMU的加速度和陀螺仪完美重合，其坐标系与本体坐标系B重合。则加速度测量模型为，
+\begin{equation}\label{equ:acc-mea-model-simple}
+^B\mathbf{a}_m={_W^B}\mathbf{R}\left({^W}\mathbf{a}-{^W}\mathbf{g}\right)+{^B}\mathbf{a}_b+{^B}\mathbf{a}_n
+\end{equation}
+角速度测量模型为，
+\begin{equation}\label{equ:gyr-mea-model-simple}
+^B\boldsymbol{\omega}_m ={^B}\boldsymbol{\omega}+{^B}\boldsymbol{\omega}_b+{^B}\boldsymbol{\omega}_n
+\end{equation}
+其中，${_W^B}\mathbf{R}$为惯性坐标系$W$到IMU本体坐标系$B$的旋转，${^W}\mathbf{g}$为惯性系下的重力加速度，${^W}\mathbf{a}$为惯性系下加速度的真值，${^B}\mathbf{\omega}$为本体坐标系下角速度的真值，${^B}\mathbf{a}_b$为加速度的零漂bias，${^B}\mathbf{\omega}_b$为角速度的零漂bias。零漂bias为高斯游走，即(省略坐标系符号)，
+\begin{equation}
+\begin{aligned}
+\dot{\mathbf{a}}_b &\sim N\left(0, \sigma_{\mathbf{a}_b}^2\right) \\
+\dot{\boldsymbol{\omega}}_b &\sim N\left(0, \sigma_{\boldsymbol{\omega}_b}^2\right) 
+\end{aligned}
+\end{equation}
+${^B}\mathbf{a}_n, {^B}\mathbf{\omega}_n$分别为加速度、角速度的高斯白噪声，即(省略坐标系符号),
+\begin{equation}
+\begin{aligned}
+\mathbf{a}_n &\sim N\left(0, \sigma_{\mathbf{a}_n}^2\right) \\
+\boldsymbol{\omega}_n &\sim N\left(0, \sigma_{\boldsymbol{\omega}_n}^2\right)
+\end{aligned}
+\end{equation}
+其中，$\sigma_{\mathbf{a}_b}, \sigma_{\boldsymbol{\omega}_b}, \sigma_{\mathbf{a}_n}, \sigma_{\boldsymbol{\omega}_n}$一般称作IMU的噪声参数。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{IMU复杂建模}
+\noindent\textbf{calibrated模型}\\
+根据\cite{rehder2016extending}，一般情况下(如多IMU)，IMU测量坐标系A(即IMU测量数据的坐标系)与本体坐标系B不一定重合，如图\ref{fig:acc_calibrated}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/acc_calibrated}
+	\caption{IMU加速度计calibrated模型}
+	\label{fig:acc_calibrated}
+\end{figure}
+以加速度计为例，其测量模型为，
+\begin{equation}\label{equ:acc_calibrated}
+	^A\mathbf{a}_m={_B^A}\mathbf{R} \cdot {_W^B}\mathbf{R}\left({^W}\mathbf{a}-{^W}\mathbf{g}\right) + \left\lfloor{ }^B \dot{\boldsymbol{\omega}}\right\rfloor_{\times} {^B}\mathbf{r}_{A} + \left\lfloor{ }^B \boldsymbol{\omega}\right\rfloor_{\times}^2{ }^B \mathbf{r}_{A} +{^A}\mathbf{a}_b+{^A}\mathbf{a}_n
+\end{equation}
+其中，${_B^A}\mathbf{R}$是本体坐标系B到IMU测量坐标系A的旋转，${ }^B \mathbf{r}_{A}$是IMU测量坐标系A在本体坐标系B下的平移，${ }^B\boldsymbol{\omega}$是本体坐标系下的角速度。该模型称为calibrated模型\cite{rehder2016extending}。类似地，假设加速度计与陀螺仪完美重合，则陀螺仪的测量模型为，
+\begin{equation}\label{equ:gyr_calibrated}
+	^A\boldsymbol{\omega}_m = {_B^A}\mathbf{R} \cdot {^B}\boldsymbol{\omega}+{^A}\boldsymbol{\omega}_b+{^A}\boldsymbol{\omega}_n
+\end{equation}
+%其中，${_B^A}\mathbf{R}_{\omega}$是本体坐标系B到IMU陀螺仪测量坐标系A的旋转。\\
+\noindent\textbf{scale-misalignment模型}\\
+calibrated模型过于简单，对于低成本的消费级IMU来说，还存在轴偏和尺度误差。轴偏如图\ref{fig:acc_scaled_mis}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/acc_scaled_mis}
+	\caption{IMU加速度计scale-misalignment模型}
+	\label{fig:acc_scaled_mis}
+\end{figure}
+其测量模型为，
+\begin{equation}\label{equ:acc_scaled_mis}
+	\begin{aligned}
+		^A\mathbf{a}_m&=\mathbf{S}_{\alpha} \cdot \mathbf{M}_{\alpha} \cdot {_B^A}\mathbf{R} \cdot \left( {_W^B}\mathbf{R}\left({^W}\mathbf{a}-{^W}\mathbf{g}\right) + \left\lfloor{ }^B \dot{\boldsymbol{\omega}}\right\rfloor_{\times} {^B}\mathbf{r}_{A} + \left\lfloor{ }^B \boldsymbol{\omega}\right\rfloor_{\times}^2{ }^B \mathbf{r}_{A} \right) +{^A}\mathbf{a}_b+{^A}\mathbf{a}_n \\
+		&\triangleq \mathbf{S}_{\alpha} \cdot \mathbf{M}_{\alpha} \cdot {^A}\mathbf{a}_{\alpha} + {^A}\mathbf{a}_b+{^A}\mathbf{a}_n
+	\end{aligned}
+\end{equation}
+其中，$\mathbf{S}_{\alpha}$是对角矩阵，对角元素分别表示各个轴的尺度因子。$\mathbf{M}_{\alpha}$是下三角矩阵，对角线为1、对角线下元素有非零值，表示小的角度误差，即，
+\begin{equation}\label{equ:misalign_matrix}
+	\mathbf{M}_{\alpha}=
+	\left[\begin{array}{ccc}
+		1 & 0 & 0 \\
+		\alpha_{x z} & 1 & 0 \\
+		\alpha_{x y} & \alpha_{y x} & 1
+	\end{array}\right]
+\end{equation}
+轴偏的示意如图\ref{fig:axis_misalign}所示。%注意：论文rehder2016extending关于M的描述不准确，M的对角线应该是1
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/axis_misalign}
+	%注意：这个图修正了论文\ref{fig:axis_misalign}的一个角度标志的错误
+	\caption{轴偏模型。正交坐标系A(红色)与测量坐标系S原点重合。正交坐标系A的各个轴分别绕另外两个轴旋转(蓝色虚线)小角度后得到测量坐标系S。其中，转动的方向由箭头起终点表示，转动的角度为位于箭头起点的$\beta$值}
+	\label{fig:axis_misalign}
+\end{figure}
+根据\cite{tedaldi2014robust}，在小角度误差的前提下，非正交的IMU测量坐标系S的测量$\mathbf{s}^S$能够通过以下转换到正交坐标系A，
+\begin{equation}
+	\mathbf{s}^B={_S^B}\mathbf{T} \mathbf{s}^S, \quad {_S^B}\mathbf{T}=\left[\begin{array}{ccc}
+		1 & -\beta_{y z} & \beta_{z y} \\
+		\beta_{x z} & 1 & -\beta_{z x} \\
+		-\beta_{x y} & \beta_{y x} & 1
+	\end{array}\right]
+\end{equation}
+%参考：Quaternion kinematics for the error-state Kalman filter关于局部扰动
+其中，$\beta_{i j}$表示测量坐标系S的第$i$个轴相对于正交坐标系A的旋转角度。若正交坐标系A与测量坐标系S满足以下条件：
+%参考：https://zhuanlan.zhihu.com/p/639114848
+\begin{itemize}
+	\item [(1)]正交坐标系A的z轴与测量坐标系S的z轴重合
+	\item [(2)]正交坐标系A的y轴位于测量坐标系S的y、z轴组成的平面内
+\end{itemize}
+则根据条件(1)，$\beta_{z y} = \beta_{z x} = 0$；根据条件(2)则$\beta_{y z} = 0$，即可得到如图\ref{fig:axis_misalign_z}所示的简化轴偏模型。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/axis_misalign_z}
+	%注意：这个图修正了论文\ref{fig:axis_misalign}的一个角度标志的错误
+	\caption{轴偏简化模型。正交坐标系A的z轴与测量坐标系S的z轴重合且正交坐标系A的y轴位于测量坐标系S的y、z轴组成的平面内}
+	\label{fig:axis_misalign_z}
+\end{figure}
+因此，非正交的IMU测量坐标系S的到正交坐标系A的变换${_S^B}\mathbf{T}$简化为，
+\begin{equation}
+	 {_S^B}\mathbf{T}=
+	 \left[\begin{array}{ccc}
+		1 & 0 & 0 \\
+		\beta_{x z} & 1 & 0 \\
+		-\beta_{x y} & \beta_{y x} & 1
+	\end{array}\right]
+\end{equation}
+忽略正负号或者改变$\beta_{x y}$的旋转方向即可得到公式(\ref{equ:misalign_matrix})中的$\mathbf{M}_{\alpha}$。类似地，陀螺仪的测量模型为，
+\begin{equation}\label{equ:gyr_scaled_mis}
+	^A\boldsymbol{\omega}_m = \mathbf{S}_{\omega} \cdot \mathbf{M}_{\omega} \cdot {_B^A}\mathbf{R} \cdot  {^B}\boldsymbol{\omega}+\mathbf{A}_{\omega} {^A}\mathbf{a}_{\alpha} +{^A}\boldsymbol{\omega}_b+{^A}\boldsymbol{\omega}_n
+\end{equation}
+%注意：这里{_B^A}\mathbf{R}与论文rehder2016extending的描述不符，即仅有一个{_B^A}\mathbf{R}，这与代码实现一致
+其中，$\mathbf{S}_{\omega}, \mathbf{M}_{\omega}$分别表示陀螺仪尺度因子和轴偏的矩阵，其定义与形式与加速度计一致。$\mathbf{A}_{\omega}$用来建模加速度导致的角速度偏移(g-sensitivity)，一般是满填充矩阵。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\noindent\textbf{scale-misalignment-size-effect模型}\\
+对于高端的IMU，加速度计和陀螺仪的三轴是分立的，如图\ref{fig:acc_size_effect}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/acc_size_effect}
+	\caption{IMU加速度计scale-misalignment-size-effect模型}
+	\label{fig:acc_size_effect}
+\end{figure}
+令$\mathbf{I}_x=\left[1, 0, 0\right]^T, \mathbf{I}_y=\left[0, 1, 0\right]^T, \mathbf{I}_z=\left[0, 0, 1\right]^T$，其测量模型为，
+\begin{equation}\label{equ:acc_size_effect}
+%	\begin{aligned}
+	\begin{split}
+		^A\mathbf{a}_m
+		&=\mathbf{S}_{\alpha} \cdot \mathbf{M}_{\alpha} \cdot {_B^A}\mathbf{R}_{\alpha} \cdot \left[ {_W^B}\mathbf{R}\left({^W}\mathbf{a}-{^W}\mathbf{g}\right) + \mathbf{I}_x\left( \left\lfloor{ }^B \dot{\boldsymbol{\omega}}\right\rfloor_{\times} {^B}\mathbf{r}_{x} + \left\lfloor{ }^B \boldsymbol{\omega}\right\rfloor_{\times}^2{ }^B \mathbf{r}_{x} \right) \right.\\ 
+		&\left. +\mathbf{I}_y\left( \left\lfloor{ }^B \dot{\boldsymbol{\omega}}\right\rfloor_{\times} {^B}\mathbf{r}_{y} + \left\lfloor{ }^B \boldsymbol{\omega}\right\rfloor_{\times}^2{ }^B \mathbf{r}_{y} \right) + \mathbf{I}_z\left( \left\lfloor{ }^B \dot{\boldsymbol{\omega}}\right\rfloor_{\times} {^B}\mathbf{r}_{z} + \left\lfloor{ }^B \boldsymbol{\omega}\right\rfloor_{\times}^2{ }^B \mathbf{r}_{z} \right) \right] +{^A}\mathbf{a}_b+{^A}\mathbf{a}_n \\
+		%%
+		&= \mathbf{S}_{\alpha} \cdot \mathbf{M}_{\alpha} \cdot {_B^A}\mathbf{R}_{\alpha} \cdot \left[ {_W^B}\mathbf{R}\left({^W}\mathbf{a}-{^W}\mathbf{g}\right) + diag\left( \left\lfloor{ }^B \dot{\boldsymbol{\omega}}\right\rfloor_{\times} {^B}\mathbf{R}_{xyz} + \left\lfloor{ }^B \boldsymbol{\omega}\right\rfloor_{\times}^2 {^B}\mathbf{R}_{xyz} \right) \right] +{^A}\mathbf{a}_b+{^A}\mathbf{a}_n
+	\end{split} 
+%	\end{aligned}
+\end{equation}
+其中，$^B\mathbf{R}_{xyz} = \left[{^B}\mathbf{r}_{x}, {^B}\mathbf{r}_{y}, {^B}\mathbf{r}_{z} \right]$分别表示加速度计xyz轴在本体坐标系下的平移，$diag()$表示提取矩阵对角元素的运算符。各轴分立的陀螺仪本文不考虑。%todo
 
 \subsection{静态噪声标定}
-
+IMU噪声标定一般采用Alan方差法\cite{woodman2007introduction}标定。
 
 \subsection{独立IMU内参标定}
+%https://tianchi.aliyun.com/forum/post/77528
 
+\subsection{IMU预积分}
 
-\subsection{联合IMU内外参标定}
+%\subsubsection{直接IMU测量误差因子}
+%
+%\subsubsection{IMU预积分误差因子}
 
 

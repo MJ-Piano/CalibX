@@ -1,1 +1,115 @@
 \section{轮式里程计}
+\subsection{编码器原理}
+假设固定时间间隔$\mathbf{t}$内左右轮子的转动脉冲数$\mathbf{p}_l, \mathbf{p}_r$。我们记轮子半径为$\mathbf{r}$，每一圈总脉冲为$\mathbf{N}$，因此左右轮子的角速度$\omega_l,\omega_r$分别为，
+\begin{equation}
+	\left\{
+	\begin{aligned}
+		& \omega_l=\frac{2 \pi *p_l}{N*t} \\
+		& \omega_r=\frac{2 \pi *p_r}{N*t}
+	\end{aligned}
+	\right.
+\end{equation}
+注意，由于左右轮由不同的电机控制，因此一般左右轮角速度$\omega_l,\omega_r$除匀速直线运动外一般不相等，是为差速。
+根据角速度与线速度的关系$\upsilon=\omega*\mathbf{r}$，左右轮子的线速度$\upsilon_l,\upsilon_r $分别为，
+\begin{equation}
+	\left\{
+	\begin{aligned}
+		& v_l=\omega_l*d \\
+		& v_r=\omega_r*d
+	\end{aligned}
+	\right.
+\end{equation}
+\subsection{运动模型}
+\subsubsection{两轮差速底盘模型}
+
+\subsubsection{阿克曼模型}
+两轮差分底盘模型或者阿克曼模型，其运动学模型如图\ref{fig:wheel-odom-model}所示，轮子做半径为$\mathbf{R}$的圆周运动，注意，轮子本身也自转。有点类似于地球自转同时也绕太阳公转。
+%\begin{figure}[H]
+%	\centering
+%	\includegraphics[width=0.45\textwidth]{figure/wheel/wheelTop}
+%	\includegraphics[width=0.45\textwidth]{figure/wheel/wheelRight}
+%	\caption{两轮差分底盘运动学模型}
+%	\label{fig:wheel-odom-model}
+%\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/wheel/wheel}
+	\caption{两轮差分底盘运动学模型}
+	\label{fig:wheel-odom-model}
+\end{figure}
+
+\paragraph{解析方法}\mbox{} \\
+轨迹的线速度也等于各自轮子轨迹与地面接触处的线速度，即$\upsilon_L = \upsilon_l, \upsilon_R = \upsilon_r$，且左右轮子轨迹的角速度与机体中心的角速度$\omega$相等，即$\omega = \omega_R = \omega_L$，因此，
+\begin{equation}
+	\begin{aligned}
+		\omega = \omega_R = \frac{\upsilon_r}{R+b/2} &= \omega_L = \frac{\upsilon_l}{R-b/2} \\
+		\rightarrow v_l(R+b/2) & =v_r(R-b/2) \\
+		\rightarrow\left(v_r-v_l\right) R & =\left(v_r+v_l\right) b \\
+		\rightarrow R & =\frac{v_r+v_l}{v_r-v_l}*\frac{b}{2} 
+	\end{aligned}
+\end{equation}
+因此机体角速度为，
+\begin{equation}
+	\begin{aligned}
+		\omega &= \frac{\upsilon_r}{R+b/2} \\
+		&= \frac{\upsilon_r}{\frac{v_r+v_l}{v_r-v_l}*\frac{b}{2} +b/2} \\
+		&= \frac{\upsilon_r}{\frac{v_r}{v_r-v_l} b} \\
+		&= \frac{v_r-v_l}{b}
+	\end{aligned}
+\end{equation}
+机体速度为，
+\begin{equation}
+	\begin{aligned}
+		\upsilon &= \omega*r \\
+		&= \frac{v_r-v_l}{b} * \frac{v_r+v_l}{v_r-v_l}b \\
+		&= \frac{v_r+v_l}{2}
+	\end{aligned}
+\end{equation}
+% 参考：https://xiaotaoguo.com/p/wheel-odometry-model-calibration/
+\paragraph{相对速度方法}\mbox{} \\
+以左轮为参考系，则右轮相对于左轮的速度为，
+\begin{equation}
+	v' = v_r-v_l
+\end{equation}
+由于旋转半径为$b$，则角速度为，
+\begin{equation}
+	\omega = \frac{v'}{b} = \frac{v_r-v_l}{b} 
+\end{equation}
+根据左右轮子轨迹的角速度与机体中心的角速度$\omega$相等，即$\omega = \omega_R = \omega_L$，但是机体中心旋转半径仅为右轮的一半，因此，机体中心线速度为
+\begin{equation}
+	v = \frac{v_r+v_l}{2}
+\end{equation}
+\paragraph{微积分几何方法}\mbox{} \\
+假设在极小时间$t$内，左右轮的运动轨迹如图所示，
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/wheel/wheelGeometry}
+	\caption{两轮差分底盘运动学模型}
+	\label{fig:wheel-geometry-model}
+\end{figure}
+左右轮的近似位移之差$s$为，
+\begin{equation}
+	s = (v_r-v_l)*t
+\end{equation}
+根据三角关系，并利用等价无穷小$tan(\theta) \approx \theta $去掉三角符号,
+\begin{equation}
+	tan(\theta) \approx \theta = \frac{s}{b} = \frac{(v_r-v_l)*t}{b} 
+\end{equation}
+又因为，
+\begin{equation}
+	\theta = \omega*t
+\end{equation}
+因此，也可以的得到
+\begin{equation}
+	\omega = \frac{v_r-v_l}{b} 
+\end{equation}
+机体中心的位移为，
+\begin{equation}
+	s_B = \frac{(v_r+v_l)*t}{2}
+\end{equation}
+因此机体中心速度为，
+\begin{equation}
+	v = \frac{s_B}{t} = \frac{(v_r+v_l)}{2}
+\end{equation}
+%reference: https://en.wikipedia.org/wiki/Differential_wheeled_robot
+\subsection{轮式里程计积分}
