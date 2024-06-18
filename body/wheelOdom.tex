@@ -1,6 +1,6 @@
 \section{轮式里程计}
 \subsection{编码器原理}
-假设固定时间间隔$\mathbf{t}$内左右轮子的转动脉冲数$\mathbf{p}_l, \mathbf{p}_r$。我们记轮子半径为$\mathbf{r}$，每一圈总脉冲为$\mathbf{N}$，因此左右轮子的角速度$\omega_l,\omega_r$分别为，
+假设固定时间间隔$t$内左右轮子的转动脉冲数$p_l, p_r$。左右轮轮子半径分别为$r_l, r_r$，每一圈总脉冲为$N$，因此左右轮子的角速度$\omega_l,\omega_r$分别为，
 \begin{equation}
 	\left\{
 	\begin{aligned}
@@ -10,20 +10,27 @@
 	\right.
 \end{equation}
 注意，由于左右轮由不同的电机控制，因此一般左右轮角速度$\omega_l,\omega_r$除匀速直线运动外一般不相等，是为差速。
-根据角速度与线速度的关系$\upsilon=\omega*\mathbf{r}$，左右轮子的线速度$\upsilon_l,\upsilon_r $分别为，
+根据角速度与线速度的关系$\upsilon=\omega*r$，左右轮子的线速度$\upsilon_l,\upsilon_r $分别为，
 \begin{equation}
 	\left\{
 	\begin{aligned}
-		& v_l=\omega_l*d \\
-		& v_r=\omega_r*d
+		& v_l=\omega_l*r_l \\
+		& v_r=\omega_r*r_r
 	\end{aligned}
 	\right.
 \end{equation}
 \subsection{运动模型}
 \subsubsection{两轮差速底盘模型}
-
+两轮差速底盘模型是最简单的底盘模型，其底盘由两个由电机驱动的动力轮再加一个或者多个被动的可以自由运动的万向轮组成，如图\ref{fig:diff-drive_2wheel-model}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/wheel/diff_drive_2wheel}
+	\caption{两轮差速底盘运动学模型。由两个由电机驱动的动力轮再加一个可以自由运动的万向轮组成。转弯时，动力轮绕圆心CoR(Center of Rotation)做圆周运动。其中，后轮中心圆周运动半径记为R}
+	\label{fig:diff-drive_2wheel-model}
+\end{figure}
+两轮差速底盘模型常见于AGV、扫地机等低速场景。由于其运动模型与阿克曼模型一致，故在下一章节介绍。
 \subsubsection{阿克曼模型}
-两轮差分底盘模型或者阿克曼模型，其运动学模型如图\ref{fig:wheel-odom-model}所示，轮子做半径为$\mathbf{R}$的圆周运动，注意，轮子本身也自转。有点类似于地球自转同时也绕太阳公转。
+阿克曼模型由四轮组成，底盘前两轮用于控制方向，后两轮控制速度。其运动学模型如图\ref{fig:wheel-odom-model}所示。转弯时，所有轮子作圆周运动，其圆心重合，即
 %\begin{figure}[H]
 %	\centering
 %	\includegraphics[width=0.45\textwidth]{figure/wheel/wheelTop}
@@ -34,10 +41,10 @@
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.7\textwidth]{figure/wheel/wheel}
-	\caption{两轮差分底盘运动学模型}
+	\caption{阿克曼底盘运动学模型。转弯时所有轮子绕圆心CoR做圆周运动。其中，后轮中心圆周运动半径记为R}
 	\label{fig:wheel-odom-model}
 \end{figure}
-
+阿克曼模型常见于汽车。其运动模型有多种推导方法。下文分别用解析法、相对速度法、微积分几何三种方法推导其运动模型。
 \paragraph{解析方法}\mbox{} \\
 轨迹的线速度也等于各自轮子轨迹与地面接触处的线速度，即$\upsilon_L = \upsilon_l, \upsilon_R = \upsilon_r$，且左右轮子轨迹的角速度与机体中心的角速度$\omega$相等，即$\omega = \omega_R = \omega_L$，因此，
 \begin{equation}
@@ -54,7 +61,8 @@
 		\omega &= \frac{\upsilon_r}{R+b/2} \\
 		&= \frac{\upsilon_r}{\frac{v_r+v_l}{v_r-v_l}*\frac{b}{2} +b/2} \\
 		&= \frac{\upsilon_r}{\frac{v_r}{v_r-v_l} b} \\
-		&= \frac{v_r-v_l}{b}
+		&= \frac{v_r-v_l}{b} \\
+		&= \frac{\omega_r*r_r-\omega_l*r_l}{b}
 	\end{aligned}
 \end{equation}
 机体速度为，
@@ -62,7 +70,8 @@
 	\begin{aligned}
 		\upsilon &= \omega*r \\
 		&= \frac{v_r-v_l}{b} * \frac{v_r+v_l}{v_r-v_l}b \\
-		&= \frac{v_r+v_l}{2}
+		&= \frac{v_r+v_l}{2} \\
+		&= \frac{\omega_r*r_r+\omega_l*r_l}{2}
 	\end{aligned}
 \end{equation}
 % 参考：https://xiaotaoguo.com/p/wheel-odometry-model-calibration/
@@ -112,4 +121,239 @@
 	v = \frac{s_B}{t} = \frac{(v_r+v_l)}{2}
 \end{equation}
 %reference: https://en.wikipedia.org/wiki/Differential_wheeled_robot
+\subsection{轮式里程计预积分}
+由于轮式里程计的频率一般比较高，在实际VIO系统中，往往取两个时间段内里程计的数据做积分得到相对位姿约束。根据\cite{lee2020visual}，在时间$t_\tau \in\left[t_k, t_{k+1}\right]$，如图\ref{fig:wheel-2d-kinematic}，机体中心的连续时间二维运动学模型为，
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/wheel/wheel_2d_kinematic}
+	\caption{机体中心运动学模型。以$t_k$时刻机体中心的位姿构建参考坐标系$O_k$，近似认为，$t_\tau$时刻机体中心的CoR通过$O_k$}
+	\label{fig:wheel-2d-kinematic}
+\end{figure}
+\begin{equation}\label{equ:wheel-2d-kinematic}
+	\left[\begin{array}{c}
+		{_{O_k}^{O_\tau}} \dot{\theta} \\
+		{^{O_k}}\dot{x}_{O_\tau} \\
+		{^{O_k}}\dot{y}_{O_\tau}
+	\end{array}\right]
+	=
+	\left[\begin{array}{c}
+		-{^{O_k}_{O_\tau}} \dot{\theta} \\
+		{^{O_k}}\dot{x}_{O_\tau} \\
+		{^{O_k}}\dot{y}_{O_\tau}
+	\end{array}\right]
+	=
+	\left[\begin{array}{c}
+		-{^{O_\tau}} \omega \\
+		{^{O_{\tau}}}v cos({^{O_k}_{O_\tau}} \theta) \\
+		{^{O_{\tau}}}v sin({^{O_k}_{O_\tau}} \theta)
+	\end{array}\right]
+	=
+	\left[\begin{array}{c}
+		-{^{O_\tau}} \omega \\
+		{^{O_{\tau}}}v cos({_{O_k}^{O_\tau}} \theta) \\
+		-{^{O_{\tau}}}v sin({_{O_k}^{O_\tau}} \theta)
+	\end{array}\right]
+\end{equation}
+其中，${^{O_k}_{O_\tau}} \theta$是$t_\tau$时刻，机体中心$O_\tau$在$t_k$时刻的参考坐标系$O_k$的旋转角度。反之，${_{O_k}^{O_\tau}} \theta$则是$O_k$在机体中心$O_\tau$坐标系的旋转角度 。${^{O_k}}x_{O_\tau}, {^{O_k}}y_{O_\tau}$是机体中心$O_\tau$在$t_k$时刻的参考坐标系$O_k$的二维位置。${^{O_\tau}} \omega, {^{O_{\tau}}}v$分别是$t_\tau$时刻，机体中心$O_\tau$的角速度和线速度。假设$t_k$到$t_{\tau+1}$的时间内，角速度和线速度不变，则$t_{\tau+1}$时刻的位姿为，	
+\begin{equation}\label{equ:wheel_inte_theta}
+	\begin{aligned}
+		{_{O_k}^{O_{\tau+1}}} \theta & = { }_{O_k}^{O_\tau} \theta+\int_{t_\tau}^{t_{\tau+1}} {_{O_k}^{O_\tau}} \dot{\theta} d t = { }_{O_k}^{O_\tau} \theta-\int_{t_\tau}^{t_{\tau+1}} {^{O_t}}\omega d t \\
+		& \approx{ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega \Delta t \\
+		&= { }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega \Delta t 
+	\end{aligned}
+\end{equation}
+\begin{equation}\label{equ:wheel_inte_x}
+	\begin{aligned}
+		{ }^{O_k} x_{O_{\tau+1}} & ={ }^{O_k} x_{O_\tau}+\int_{t_\tau}^{t_{\tau+1}}{ }^{O_t} v \cos \left({ }_{O_k}^{O_t} \theta\right) d t \\
+		& \approx{ }^{O_k} x_{O_\tau}+\int_{t_\tau}^{t_{\tau+1}}{ }^{O_\tau} v \cos \left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega\left(t-t_\tau\right)\right) d t \\
+		& \xlongequal{x=t-t_\tau}{ }^{O_k} x_{O_\tau}+\int_{0}^{\Delta t}{ }^{O_\tau} v \cos \left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega x\right) d x \\
+		& \xlongequal{\text{参考公式}(\ref{equ:integrate_cos})}{ }^{O_k} x_{O_\tau}-\frac{{ }^{O_\tau} v \sin\left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega x\right)}{^{O_\tau} \omega} \bigg|_{x=0}^{x=\Delta t}\\
+		& = { }^{O_k} x_{O_\tau}-\frac{{ }^{O_\tau} v\left(\sin \left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega \Delta t\right)-\sin \left({ }_{O_k}^{O_\tau} \theta\right)\right)}{^{O_\tau} \omega} 
+	\end{aligned}
+\end{equation}
+类似地，对于y轴平移，
+\begin{equation}\label{equ:wheel_inte_y}
+	\begin{aligned}
+		{ }^{O_k} y_{O_{\tau+1}} & ={ }^{O_k} y_{O_\tau}-\int_{t_\tau}^{t_{\tau+1}}{ }^{O_t} v \sin \left({ }_{O_k}^{O_t} \theta\right) d t \\
+		& \approx{ }^{O_k} y_{O_\tau}-\int_{t_\tau}^{t_{\tau+1}}{ }^{O_\tau} v \sin \left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega\left(t-t_\tau\right)\right) d t \\
+		& \xlongequal{x=t-t_\tau}{ }^{O_k} y_{O_\tau}-\int_{0}^{\Delta t}{ }^{O_\tau} v \sin \left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega x\right) d x \\
+		& \xlongequal{\text{参考公式}(\ref{equ:integrate_sin})}{ }^{O_k} y_{O_\tau}-\frac{{ }^{O_\tau} v \cos\left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega x\right)}{^{O_\tau} \omega} \bigg|_{x=0}^{x=\Delta t}\\
+		& ={ }^{O_k} y_{O_\tau}-\frac{{ }^{O_\tau} v\left(\cos \left({ }_{O_k}^{O_\tau} \theta-{ }^{O_\tau} \omega \Delta t\right)-\cos \left({ }_{O_k}^{O_\tau} \theta\right)\right)}{O_\tau \omega}
+	\end{aligned}
+\end{equation}
+其中，$\Delta t = t_{\tau+1} - t_\tau$。类似地，假设$t_k$到$t_{k+1}$内里程计的测量数目为$n$，则二维相对位姿为，
+\begin{equation}
+	\begin{aligned}
+		\mathbf{z}_{k+1} & = \mathbf{z}_O=:\left[\begin{array}{c}
+			{^{O_{k+1}}_{O_k}} \theta \\
+			{^{O_k}} \mathbf{d}_{O_{k+1}}
+		\end{array}\right]
+		=
+		\left[\begin{array}{c}
+			-\int_{t_{k}}^{t_{k+1}} {^{O_t}} \omega d t \\
+			\int_{t_{k}}^{t_{k+1}} {^{O_t}} v \cos \left({ }_{O_{k}}^{O_t} \theta\right) d t \\
+			-\int_{t_{k}}^{t_{k+1}} {^{O_t}} v \sin \left({ }_{O_{k}}^{O_t} \theta\right) d t
+		\end{array}\right] \\
+%		&=
+%		\left[\begin{array}{c}
+%			-\sum_{i=1}^n \Delta t_i \omega_i \\
+%			\sum_{i=1}^n {^{O_t}} v \cos \left({ }_{O_{k}}^{O_t} \theta\right)  \\
+%			-\sum_{i=1}^n {^{O_t}} v \sin \left({ }_{O_{k}}^{O_t} \theta\right) 
+%		\end{array}\right] \\
+		&=: \mathbf{g}_O\left(\left\{\omega_l, \omega_r\right\}_{k: k+1}, \mathbf{x}_{O I}\right)
+	\end{aligned}
+\end{equation}
+其中，$\left\{\omega_l, \omega_r\right\}_{k: k+1}$是$t_k$到$t_{k+1}$之间所有里程计测量。$\mathbf{x}_{O I}=\left[r_l , r_r, b\right]^{\top}$表示轮式里程计的内参。利用公式(\ref{equ:wheel_inte_theta})、(\ref{equ:wheel_inte_x})和(\ref{equ:wheel_inte_y})即可迭代计算$\mathbf{z}_{k+1}$。
 \subsection{轮式里程计积分}
+
+
+\subsection{轮式里程计标定}
+假设IMU的内参已经标定，IMU的测量进行了标定矫正(去除了轴偏、尺度因子的影响)。初始化收集数据的短时间(如0.2s)内，IMU的测量数目为$N$，轮式里程计的测量数目为$M$，假设$M \leq N$。
+\subsubsection{IMU-轮式里程计标定}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/wheel/imu_wheel_car}
+	\caption{IMU-轮式里程计标定。待标定的参数包括轮式里程计内参$\{r_l, r_r, b\}$，IMU的内参$\{\mathbf{b}_a, \mathbf{b}_g\}$，IMU-轮式里程计的外参$\{{^O_I}\mathbf{R}, {^{O}} \mathbf{p}_I, \delta t\}$以及重力${^{I_0}}\mathbf{g}$}
+	\label{fig:imu-wheel-car}
+\end{figure}
+如图\ref{fig:imu-wheel-car}所示，IMU固定放置在小车上。假设机器人处于运动状态，如8字形运动轨迹。通过标定参数将IMU和轮式里程计的测量联系起来，如图\ref{fig:imu-wheel-calibration}所示，进而构建优化目标函数。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/wheel/imu_wheel_cal}
+	\caption{IMU-轮式里程计动态标定因子图。灰色横轴表示时间，橙色圆圈表示轮式里程计测量，黑色竖向柱子表示IMU测量}
+	\label{fig:imu-wheel-calibration}
+\end{figure}
+\paragraph{角速度约束}\mbox{} \\
+由于IMU的陀螺仪和轮式里程计均测量到了角速度，假设在标定期间则IMU陀螺仪的$\mathbf{b}_g$为恒定值，则
+\begin{equation}\label{equ:imu-wheel-w}
+	\mathbf{b}_g = {^{I_k}} \boldsymbol{\omega}(t_k)-{ }_O^I \mathbf{R} {^{O_k}}\boldsymbol{\omega}(t_k) 
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\mathbf{b}_g$是陀螺仪的偏置
+	\item ${^{O_k}}\boldsymbol{\omega}(t_k)$是$t_k$时刻轮式里程计机体中心角速度，由左右轮角速度计算而得，即${^O_k}\boldsymbol{\omega}(t_k)= \left[0, 0, \frac{\omega_r(t_k)*r_r+\omega_l(t_k)*r_l}{b}\right]^\top$
+	\item ${^{I_k}} \boldsymbol{\omega}(t_k)$为IMU的角速度，通过插值得到与轮式里程计角速度相同时刻的测量
+	\item ${ }_O^I \mathbf{R}$是轮式里程计机体中心坐标系到IMU坐标系的旋转
+\end{itemize}
+\paragraph{线速度约束}\mbox{} \\
+$k$时刻，IMU在第一帧IMU测量所在坐标系$I_0$的线速度${ }^{I_0} \mathbf{v}_{I_k} $可以通过加速度计测量或者轮式里程计测量两种方式计算，
+\begin{equation}\label{equ:init_imu_vel}
+	\begin{aligned}
+		%k
+		{ }^{I_0} \mathbf{v}(t_k) & ={ }^{I_0} \mathbf{v}(t_{k-1})+\sum_{t_i=t_{k-1}}^{t_k}\left({ }_{I_i}^{I_0} \mathbf{R} {^{I_i}} \mathbf{a}(t_i)-{ }_{I_i}^{I_0} \mathbf{R} \mathbf{b}_a-{ }^{I_0} \mathbf{g}\right)(t_i-t_{i-1}) \\
+		& ={ }_{I_k}^{I_0} \mathbf{R} {_O^I} \mathbf{R}\left({ }^{O_k} \mathbf{v}(t_k)+\left\lfloor{ }^{O_k} \boldsymbol{\omega}(t_k)\right\rfloor{^{O}} \mathbf{p}_I\right) \\
+		%k-1
+		{ }^{I_0} \mathbf{v}(t_{k-1}) & ={ }^{I_0} \mathbf{v}(t_{k-2})+\sum_{t_i=t_{k-2}}^{t_{k-1}}\left({ }_{I_i}^{I_0} \mathbf{R} {^{I_i}} \mathbf{a}(t_i)-{ }_{I_i}^{I_0} \mathbf{R} \mathbf{b}_a-{ }^{I_0} \mathbf{g}\right)(t_i-t_{i-1}) \\
+		& ={ }_{I_{k-1}}^{I_0} \mathbf{R} {_O^I} \mathbf{R}\left({ }^{O_{k-1}} \mathbf{v}(t_{k-1})+\left\lfloor{ }^{O_k} \boldsymbol{\omega}(t_{k-1})\right\rfloor{^{O}} \mathbf{p}_I\right) \\
+		\cdots \\
+		%1
+		{ }^{I_0} \mathbf{v}(t_1) & ={ }^{I_0} \mathbf{v}(t_{0})+\sum_{t_i=t_{0}}^{t_1}\left({ }_{I_i}^{I_0} \mathbf{R} {^{I_i}} \mathbf{a}(t_i)-{ }_{I_i}^{I_0} \mathbf{R} \mathbf{b}_a-{ }^{I_0} \mathbf{g}\right)(t_i-t_{i-1}) \\
+		& ={ }_{I_1}^{I_0} \mathbf{R} {_O^I} \mathbf{R}\left({ }^{O} \mathbf{v}(t_1)+\left\lfloor{ }^{O_1} \boldsymbol{\omega}(t_1)\right\rfloor{^{O}} \mathbf{p}_I\right)
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item ${ }^{I_0} \mathbf{v}(t_k)$是$t_k$时刻IMU的速度，有轮式里程计的线速度测量计算而得，即${^{I_0}}\mathbf{v}(t_k) = { }_{I_k}^{I_0} \mathbf{R} {_O^I} \mathbf{R}\left({ }^{O_k} \mathbf{v}(t_k)+\left\lfloor{ }^{O_k} \boldsymbol{\omega}(t_k)\right\rfloor{^{O}} \mathbf{p}_I\right)$。
+	\item $\Delta t_i = t_i-t_{i-1}$是相邻两帧加速度计测量的时间差。
+	\item ${^{I_i}} \mathbf{a}(t_i)$是第$t_i$时刻加速度测量。
+	\item ${ }_{I_i}^{I_0} \mathbf{R}$是$t_i$时刻IMU相对于$t_0$时刻的相对位姿，由陀螺仪角速度积分而得。
+	\item ${ }^{O_k} \mathbf{v}(t_k)=\left[0, 0, \frac{\omega_r(t_k)*r_r-\omega_l(t_k)*r_l}{2}\right]^\top$是$t_k$时刻轮式里程计中心的线速度。
+	\item ${ }^{O_k} \boldsymbol{\omega}(t_k)$是$t_k$时刻轮式里程计中心的角速度。
+\end{itemize}
+由公式(\ref{equ:init_imu_vel})重新排列，可以组成以下的线性系统，
+\begin{equation}\label{equ:imu-wheel-v}
+	\begin{aligned}
+		&\underbrace{\left[\begin{array}{cc}
+				-\sum\limits_{t_i=t_{k-1}}^{t_k} {^{I_0}_{I_i}}\mathbf{R}\Delta t_i & -\sum\limits_{t_i=t_{k-1}}^{t_k} \mathbf{I}_3\Delta t_i
+			\end{array}\right]}_{\mathbf{A}} \underbrace{\left[\begin{array}{c}
+				\mathbf{b}_a \\
+				{^{I_0}} \mathbf{g}
+			\end{array}\right]}_{\mathbf{x}} \\
+		& =\underbrace{\left[{ }_{I_k}^{I_0}\mathbf{R} {_O^I} \mathbf{R} \left({ }^{O_k} \mathbf{v}(t_k)+\left\lfloor{ }^{O_k} \boldsymbol{\omega}(t_k)\right\rfloor{ }^O \mathbf{p}_I\right)-{ }^{I_0} \mathbf{v}(t_{k-1})-\sum_{t_i=t_{k-1}}^{t_k}  {_{I_i}^{I_0}}\mathbf{R} {^{I_i}}\mathbf{a}(t_i)\Delta t_i \right]}_{\mathbf{b}} 
+	\end{aligned}
+\end{equation}
+将公式(\ref{equ:imu-wheel-w})、(\ref{equ:imu-wheel-v})组成以下的优化问题(省略时间标志)，并添加重力模长约束，
+\begin{equation}\label{equ:imu-wheel-cal}
+	\begin{aligned}
+		&\min_{\mathbf{b}_a, \mathbf{b}_g, {^{I_0}} \mathbf{g}, r_r, r_l, b, { }_O^I \mathbf{R}, {^{O}} \mathbf{p}_I} \frac{1}{2}\sum_{k=0}^{M-1}||{^{I_k}} 	\boldsymbol{\omega}(t_k)-{ }_O^I \mathbf{R} {^{O_k}}\boldsymbol{\omega}(t_k) - \mathbf{b}_g||^2 \\
+		+ &\frac{1}{2}\sum_{k=1}^{M-1}||{ }^{I_0} \mathbf{v}(t_k) - { }^{I_0} \mathbf{v}(t_{k-1})-\sum_{t_i=t_{k-1}}^{t_k}\left({ }_{I_i}^{I_0} \mathbf{R} {^{I_i}} \mathbf{a}(t_i)-{ }_{I_i}^{I_0} \mathbf{R} \mathbf{b}_a-{ }^{I_0} \mathbf{g}\right)(t_i-t_{i-1})||^2	 \\
+		& \mbox{s.t.}\quad ||{^{I_0}} \mathbf{g}|| = G
+	\end{aligned}
+\end{equation}
+其中，$G$是当地重力模长。
+%\begin{itemize}
+%	\item 
+%\end{itemize}
+%\paragraph{重力对齐下初始旋转${ }_W^{I_0} \mathbf{R}$}\mbox{} \\
+%已知重力${^{I_0}}\mathbf{g}$，利用格拉姆-施密特正交化\cite{GramSchmidtProcess}即可得到一组正交基，即
+%\begin{equation}
+%	\left\{
+%	\begin{aligned}
+%		&\mathbf{z}_{axis} = {^{I_0}}\mathbf{g}/norm({^{I_0}}\mathbf{g}) \\
+%		&\mathbf{x}_{axis} = \mathbf{u}_{x} - \mathbf{z}_{axis}\cdot \mathbf{z}^T_{axis} \cdot \mathbf{u}_{x} \\
+%		&\mathbf{y}_{axis} = \mathbf{z}_{axis} \times \mathbf{x}_{axis} = \skewx{\mathbf{z}_{axis}} \cdot \mathbf{x}_{axis}
+%	\end{aligned}
+%	\right.
+%\end{equation}
+%其中，$\mathbf{u}_{x}=[1,0,0]^T$。则初始化的旋转定义成${ }_W^{I_0} \mathbf{R} = [\mathbf{x}_{axis};\mathbf{y}_{axis};\mathbf{z}_{axis}]$。
+%\subsubsection{IMU-轮式里程计静态初始化}
+%当静止或者平移运动的情况下，即公式(\ref{equ:init_imu_vel})中，${ }_{I_i}^{I_0} \mathbf{R} \equiv \mathbf{I}$，此时，$\mathbf{b}_a$和${^{I_0}}\mathbf{g}$不可分。
+\paragraph{时延估计}\mbox{} \\
+恒速假设下，假设轮式里程计和IMU的时延为恒定值，轮式里程计的角速度和线速度可以通过如下方式近似，
+\begin{equation}\label{equ:wheel-angular-td}
+	\left\{
+	\begin{aligned}
+		{^{O_{k+\delta t}}}\boldsymbol{\omega}(t_k+\delta t) &\approx {^{O_k}}\boldsymbol{\omega}(t_k) + \left({^{O_k}}\boldsymbol{\omega}(t_k)- {^{O_{k-1}}}\boldsymbol{\omega}(t_{k-1})\right)\frac{\delta t}{t_k-t_{k-1}} \\
+		{^{O_{k+\delta t}}}\mathbf{v}(t_k+\delta t) &\approx {^{O_k}}\mathbf{v}(t_k) + \left({^{O_k}}\mathbf{v}(t_k)- {^{O_{k-1}}}\mathbf{v}(t_{k-1})\right)\frac{\delta t}{t_k-t_{k-1}}
+	\end{aligned}
+	\right.
+\end{equation}
+其中，$\delta t$是轮式里程计时钟系统相对于IMU时钟系统的时延。则
+\begin{equation}\label{equ:wheel-velocity-td}
+	\begin{aligned}
+		{^{I_0}}\mathbf{v}(t_k) &= {_{I_k}^{I_0}}\mathbf{R}{_O^I} \mathbf{R}\left({ }^{O_k} \mathbf{v}(t_k+\delta t)+\left\lfloor {^{O_k}}\boldsymbol{\omega}(t_k+\delta t)\right\rfloor{^{O}} \mathbf{p}_I\right) \\
+		&\approx {_{I_k}^{I_0}}\mathbf{R}{_O^I} \mathbf{R}\left({^{O_k}}\mathbf{v}(t_k) + \left({^{O_k}}\mathbf{v}(t_k)- {^{O_{k-1}}}\mathbf{v}(t_{k-1})\right)\frac{\delta t}{t_k-t_{k-1}} \right.\\
+		&\left.+\left\lfloor {^{O_k}}\boldsymbol{\omega}(t_k) +  \left({^{O_k}}\boldsymbol{\omega}(t_k)- {^{O_{k-1}}}\boldsymbol{\omega}(t_{k-1})\right)\frac{\delta t}{t_k-t_{k-1}}\right\rfloor{^{O}} \mathbf{p}_I\right) 
+	\end{aligned}
+\end{equation}
+在此假设下，优化问题(\ref{equ:imu-wheel-cal})变为，
+\begin{equation}\label{equ:imu-wheel-cal-td}
+	\begin{aligned}
+		&\min_{\mathbf{b}_a, \mathbf{b}_g, {^{I_0}} \mathbf{g}, r_r, r_l, b, { }_O^I \mathbf{R}, {^{O}} \mathbf{p}_I, \delta t} \frac{1}{2}\sum_{k=0}^{M-1}||{^{I_k}} 	\boldsymbol{\omega}(t_k)-{ }_O^I \mathbf{R} {^{O_k}}\boldsymbol{\omega}(t_k+\delta t) - \mathbf{b}_g||^2 \\
+		+ &\frac{1}{2}\sum_{k=1}^{M-1}||{ }^{I_0} \mathbf{v}(t_k+\delta t) - { }^{I_0} \mathbf{v}(t_{k-1}+\delta t)-\sum_{t_i=t_{k-1}}^{t_k}\left({ }_{I_i}^{I_0} \mathbf{R} {^{I_i}} \mathbf{a}(t_i)-{ }_{I_i}^{I_0} \mathbf{R} \mathbf{b}_a-{ }^{I_0} \mathbf{g}\right)(t_i-t_{i-1})||^2	 \\
+		& \mbox{s.t.}\quad ||{^{I_0}} \mathbf{g}|| = G
+	\end{aligned}
+\end{equation}
+将公式(\ref{equ:wheel-angular-td})、(\ref{equ:wheel-velocity-td})带入上述公式即可得到带时延的优化问题。
+\paragraph{问题求解}\mbox{} \\
+问题(\ref{equ:imu-wheel-cal-td})是等式约束最小二乘问题，Ceres\cite{AgarwalCeresSolver2022}并不能直接求解。将优化变量重力${^{I_0}} \mathbf{g}=\left[\mathbf{g}_x, \mathbf{g}_y, \mathbf{g}_z\right]^\top$表示为球坐标系后，即
+%https://zh.wikipedia.org/wiki/%E7%90%83%E5%BA%A7%E6%A8%99%E7%B3%BB
+\begin{equation}
+	\left\{
+	\begin{aligned}
+		& \mathbf{g}_x=G \sin \theta \cos \varphi \\
+		& \mathbf{g}_y=G \sin \theta \sin \varphi \\
+		& \mathbf{g}_z=G \cos \theta
+	\end{aligned}
+	\right.
+\end{equation}
+优化问题(\ref{equ:imu-wheel-cal-td})变为无约束最小二乘问题，用Ceres即可直接求解。
+\paragraph{退化运动}\mbox{} \\
+根据论文\cite{lee2020visual}，平面运动下，${ }_O^I \mathbf{R}$的roll和pitch角不可观，${^{O}} \mathbf{p}_I$的z轴分量不可观。
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{相机-轮式里程计标定}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/wheel/cam_wheel_car}
+	\caption{相机-轮式里程计标定。待标定的参数包括轮式里程计内参$\{r_l, r_r, b\}$，相机-轮式里程计的外参$\{{^O_C}\mathbf{R}, {^{O}} \mathbf{p}_C, \delta t\}$}
+	\label{fig:cam-wheel-car}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{轮式里程计打滑}
+论文\cite{reina2006wheel}提出，可以根据同一侧轮子纵向速度是否相等、轮式里程计计算的角速度与陀螺仪测量的角速度是否相近以及电流的变化量来判断是否打滑。
+\begin{equation}
+	{^I}\boldsymbol{\omega}(t) = {_O^I} \mathbf{R} {^O}\boldsymbol{\omega}(t)
+\end{equation}
+

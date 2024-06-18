@@ -1,5 +1,8 @@
 \section{标定设备和标定环境}
-\subsection{标定板}
+\subsection{全局定位标定板}
+\subsubsection{棋盘格}
+\subsubsection{CircleGrid}
+\subsection{局部定位标定板}\label{chp:target}
 \subsubsection{Apriltag}
 
 \subsubsection{RandomGrid}
@@ -7,7 +10,7 @@
 	\item \textbf{创建标定板}
 \end{itemize}
 
-\subsubsection{特征点检测}
+\subsection{特征点检测}
 \begin{itemize}
 	\item \textbf{特征点检测}
 \end{itemize}
@@ -18,7 +21,164 @@
 	\caption{圆点检测流程。}
 	\label{fig:RandomGridDetection}
 \end{figure}
+\paragraph{无偏检测}\mbox{} \\
+论文\cite{song2024unbiased}指出，圆经过投影和畸变后，不再满足严格意义上的椭圆。如图所示。
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/target/unbiased-estimator-conic}
+	\caption{圆经过投影和畸变后，传统的圆或者椭圆中心(红色)不是真正的中心，无偏检测能更加准确的找到中心点(绿色)。}
+	\label{fig:unbiased-estimator-conic}
+\end{figure}
+因此，论文\cite{song2024unbiased}提出一种无偏圆心检测方法，如算法所示，
+\begin{algorithm}
+	\caption{圆心无偏检测}
+	\LinesNumbered
+	\label{alg:unbiased_estimator}
+	\KwIn{圆在标定板坐标系的矩阵参数$\mathbf{Q}_w$，由位姿而得的单应矩阵$\mathbf{H} = [\mathbf{r}_1, \mathbf{r}_2, \mathbf{t}] $，$\mathbf{K}$相机投影参数，$\mathbf{D}$相机畸变参数}%输入参数
+	\KwOut{ $(xi, yi) :$圆在图像上的圆心}%输出
+%		$\text{Input: } Q_w :$ \%matrix of a circle in target plane \;
+%		$\mathbf{H} = [\mathbf{r}_1, \mathbf{r}_2, \mathbf{t}] :$ extrinsic parameter \;
+%		$K :$ intrinsic parameter \;
+%		$D = [1, d_1, d_2, ..., d_n] :$ distortion parameter \;
+%		$\text{Output: }$ $(xi, yi) :$ the center point of projected circle in image \;
+	$\mathbf{Q}_n = \mathbf{H}^{-T}\mathbf{Q}_w\mathbf{H}^{-1}$ \;
+	$m_x, m_y, m_o = 0$ \;
+	\For{$r = 0$ to $3n_d$}{
+		$t'_x, t'_y, a, b, \alpha =$ GeometryOfEllipse$(Q_n)$ \;
+		$t_x = \cos \alpha t'_x + \sin \alpha t'_y$ \;
+		$t_y = -\sin \alpha t'_x + \cos \alpha t'_y$ \;
+		$\mathbf{v}^r_s =$ CalcualteVs$(t_x, t_y, a, b, \mathbf{D}, r)$ \;
+		$\mathbf{v}^r_n = \mathbf{R}_z(a)\mathbf{v}^r_n$ \;
+		$w_o, w_i =$ GetCoeff$(\mathbf{D}, r)$ \;
+		$m_x = m_x + w_o[0]$ \;
+		$m_y = m_y + w_o[1]$ \;
+		$m_o = m_o + w_o[2]$ \;
+	}		
+	$x_d = m_x/m_o$ \;
+	$y_a = m_y/m_o$ \;
+	$x_i = \mathbf{K}[0, 0]xi + \mathbf{K}[0, 2]$ \;
+	$y_i = \mathbf{K}[1, 1]ya + \mathbf{K}[1, 2]$ \;
+	\textbf{return}$(xi, yi)$ \;
+\end{algorithm}
+其中，计算椭圆参数的计算公式为，
+\begin{equation}
+	\begin{aligned}
+		\boldsymbol{Q} & \triangleq\left[\begin{array}{lll}
+			a & b & d \\
+			b & c & e \\
+			d & e & f
+		\end{array}\right] \\
+		h_1 & =\left(a c-b^2\right), \\
+		h_2 & =\sqrt{(a-c)^2+4 b^2} \\
+		t_x & =(b e-c d) / h_1, \\
+		t_y & =(b d-a e) / h_1, \\
+		m_0 & =\sqrt{\frac{2 \operatorname{det}(\boldsymbol{Q})}{h_1\left(a+c-h_2\right)}} \\
+		m_1 & =\sqrt{\frac{2 \operatorname{det}(\boldsymbol{Q})}{h_1\left(a+c+h_2\right)}} \\
+		\alpha & =\tan ^{-1}\left(\frac{c-a+h_1}{-2 b}\right) .
+	\end{aligned}
+\end{equation}
+$v^r_s$的计算公式为，
+\begin{equation}
+	\begin{aligned}
+		\boldsymbol{v}_s^r[0] & =\sum_{i=0}^r \sum_{j=0}^{r-i} M_0^{2 i, 2 j} \sum_{k=i}^{r-j}\binom{r}{k}\binom{2 k+1}{2 i}\binom{2 r-2 k}{2 j} t_x^{2 k-2 i+1} t_y^{2 r-2 k-2 j} \\
+		\boldsymbol{v}_s^r[1] & =\sum_{i=0}^r \sum_{j=0}^{r-i} M_0^{2 i, 2 j} \sum_{k=i}^{r-j}\binom{n}{k}\binom{2 k}{2 i}\binom{2 r-2 k+1}{2 j} t_x^{2 k-2 i} t_y^{2 r-2 k-2 j+1} \\
+		\boldsymbol{v}_s^r[2] & =\sum_{i=0}^r \sum_{j=0}^{r-i} M_0^{2 i, 2 j} \sum_{k=i}^{r-j}\binom{r}{k}\binom{2 k}{2 i}\binom{2 r-2 k}{2 j} t_x^{2 k-2 i} t_y^{2 r-2 k-2 j}
+	\end{aligned}
+\end{equation}
+$\mathbf{v}^r_n$的计算公式为，
+\begin{equation}
+	\begin{aligned}
+		x_n & =\cos \alpha x_s-\sin \alpha y_s \\
+		y_n & =\sin \alpha x_s+\cos \alpha y_s \\
+		\boldsymbol{v}_n^r & =\left[\begin{array}{ccc}
+			\cos \alpha & -\sin \alpha & 0 \\
+			\sin \alpha & \cos \alpha & 0 \\
+			0 & 0 & 1
+		\end{array}\right] \boldsymbol{v}_s^r
+	\end{aligned}
+\end{equation}
+权重系数的计算方式为，
+\begin{equation}
+	\begin{aligned}
+		s & =x_n^2+y_n^2, \\
+		k & =1+d_1 s+d_2 s^2+d_3 s^3+\ldots+d_n s^n=\sum_{i=0}^{n_d} d_i s^i \quad\left(d_0=1\right), \\
+		x_d & =k x_n \\
+		y_d & =k y_n, \\
+		d A_d & =\sqrt{\operatorname{det}(\boldsymbol{G})} d A_n \\
+		\sqrt{\operatorname{det}(\boldsymbol{G})} & =\sqrt{\operatorname{det}\left(\boldsymbol{J}^{\top} \boldsymbol{J}\right)}=\operatorname{det}(\boldsymbol{J})=\left|\begin{array}{ll}
+			\frac{\partial x_d}{\partial x_n} & \frac{\partial x_d}{\partial y_n} \\
+			\frac{\partial y_d}{\partial x_n} & \frac{\partial y_d}{\partial y_n}
+		\end{array}\right| \\
+		& =\left|\begin{array}{cc}
+			k+2 x_n^2 \frac{\partial k}{\partial s} & 2 x_n y_n \frac{\partial k}{\partial s}, \\
+			2 x_n y_n \frac{\partial k}{\partial s} & k+2 y_n^2 \frac{\partial k}{\partial s}
+		\end{array}\right|=k\left(k+2 s \frac{\partial k}{\partial s}\right)=\sum_{i=0}^{n_d} d_i s^i \sum_{i=0}^{n_d}(2 i+1) d_i s^i .
+	\end{aligned}
+\end{equation}
+\begin{equation}
+	\begin{aligned}
+		\frac{\left|A_d\right|}{\left|A_n\right|} & =\frac{1}{\left|A_n\right|} \int d A_d=\frac{1}{\left|A_n\right|} \int \sqrt{\operatorname{det}(\boldsymbol{G})} d A_n=\frac{1}{\left|A_n\right|} \int\left(\sum_{i=0}^{n_d} d_i s^i\right)\left(\sum_{i=0}^{n_d}(2 i+1) d_i s^i\right) d A_n . \\
+		\left|A_d\right| M_d^{1,0} & =\int x_d d A_d=\int k x_n \sqrt{\operatorname{det}(\boldsymbol{G})} d A_n=\int x_n k^2\left(k+2 s \frac{\partial k}{\partial s}\right) d A_n \\
+		M_d^{1,0} & =\frac{\left|A_n\right|}{\left|A_d\right|} \frac{1}{\left|A_n\right|} \int x_n\left(\sum_{i=0}^{n_d} d_i s^i\right)^2\left(\sum_{i=0}^{n_d}(2 i+1) d_i s^i\right) d A_n . \\
+		\left|A_d\right| M_d^{0,1} & =\int y_d d A_d=\int y_n k^2\left(k+2 s \frac{\partial k}{\partial s}\right) d A_n, \\
+		M_d^{0,1} & =\frac{\left|A_n\right|}{\left|A_d\right|} \frac{1}{\left|A_n\right|} \int y_n\left(\sum_{i=0}^{n_d} d_i s^i\right)^2\left(\sum_{i=0}^{n_d}(2 i+1) d_i s^i\right) d A_n .
+	\end{aligned}
+\end{equation}
+上式简化为，
+\begin{equation}
+	\begin{aligned}
+		\left(\sum_{i=0}^{n_d} d_i s^i\right)\left(\sum_{i=0}^{n_d}(2 i+1) d_i s^i\right) & =\sum_{i=0}^{n_d} \sum_{j=0}^{n_d}(2 i+1) d_i d_j s^{i+j} \\
+		& =\sum_{r=0}^{2 n_d} w_{0 r} \cdot s^r, \quad\left(w_{0 r}=\sum_{i=\max \left(0, r-n_d\right)}^{\min \left(r, n_d\right)}(2 i+1) d_i d_{r-i}\right) \\
+		\left(\sum_{i=0}^{n_d} d_i s^i\right)^2\left(\sum_{i=0}^{n_d}(2 i+1) d_i s^i\right) & =\sum_{i, j, k=0}^{n_d}(2 i+1) d_i d_j d_k s^{i+j+k} \\
+		& =\sum_{r=0}^{3 n_d} w_{1 r} \cdot s^r \quad\left(w_{1 r}=\sum_{i=\max \left(0, r-2 n_d\right)}^{\min \left(r, n_d\right)}(2 i+1) d_i \sum_{j=\max \left(0, r-i-n_d\right)}^{\min \left(r-i, n_d\right)} d_j d_{r-i-j}\right)
+	\end{aligned}
+\end{equation}
+最终得到，
+\begin{equation}
+	\begin{aligned}
+		\frac{\left|A_d\right|}{\left|A_n\right|} & =\sum_{r=0}^{2 n_d} w_{0 r}\left[\frac{1}{\left|A_n\right|} \int s^r d A_n\right] \\
+		M_d^{1,0} & =\frac{\left|A_n\right|}{\left|A_d\right|} \sum_{r=0}^{3 n_d} w_{1 r}\left[\frac{1}{\left|A_n\right|} \int x_n s^r d A_n\right] \\
+		M_d^{0,1} & =\frac{\left|A_n\right|}{\left|A_d\right|} \sum_{r=0}^{3 n_d} w_{1 r}\left[\frac{1}{\left|A_n\right|} \int y_n s^r d A_n\right]
+	\end{aligned}
+\end{equation}
+则圆在图像上的圆心为，
+\begin{equation}
+	\begin{aligned}
+		& {\left[\begin{array}{l}
+				x_i \\
+				y_i
+			\end{array}\right]=\left[\begin{array}{ccc}
+				f_x & \eta & c_x \\
+				0 & f_y & c_y
+			\end{array}\right]\left[\begin{array}{c}
+				x_d \\
+				y_d \\
+				1
+			\end{array}\right]} \\
+		& \operatorname{det}(\boldsymbol{J})=\left|\begin{array}{cc}
+			f_x & \eta \\
+			0 & f_y
+		\end{array}\right|=f_x f_y \\
+		& \left|A_i\right|=f_x f_y\left|A_d\right| \\
+		& \overline{x_i} \triangleq M_i^{1,0}=\frac{1}{\left|A_i\right|} \int x_i d A_i=\frac{\left|A_d\right|}{\left|A_i\right|} \frac{1}{\left|A_d\right|} \int\left(f_x x_d+\eta y_d+c_x\right) f_x f_y d A_d \\
+		& =f_x M_d^{1,0}+\eta M_d^{0,1}+c_x\left(\because\left|A_i\right|=f_x f_y\left|A_d\right|\right) \text {, } \\
+		& \overline{y_i} \triangleq M_i^{0,1}=f_y M_d^{0,1}+c_y \\
+		& {\left[\begin{array}{l}
+				\bar{x}_i \\
+				\overline{y_i}
+			\end{array}\right]=\left[\begin{array}{ccc}
+				f_x & \eta & c_x \\
+				0 & f_y & c_y
+			\end{array}\right]\left[\begin{array}{c}
+				\overline{x_d} \\
+				\overline{y_d} \\
+				1
+			\end{array}\right]} \\
+		&
+	\end{aligned}
+\end{equation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{图像预处理}
 \begin{itemize}
 	\item \textbf{图像二值化}
 \end{itemize}
@@ -74,6 +234,7 @@
 \right.
 \end{equation}
 其中，$area=\mbox{外接矩形的长w*宽h}, \mbox{pixels是圆像素个数}$。
+\subsection{特征点提取}
 \begin{itemize}
 	\item \textbf{椭圆拟合}
 \end{itemize}
@@ -163,6 +324,7 @@ $\Theta^{\prime}$满足，
 l_{i}=\left[I_{l i i}, I_{i j},-\nabla I_{i}^{T} x_{i}\right]^{T}
 \end{equation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{标志点模式匹配}
 \begin{itemize}
 	\item \textbf{圆最近邻域分析}
 \end{itemize}

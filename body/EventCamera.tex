@@ -1,0 +1,225 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{事件相机}
+事件相机基于动态视觉传感器(Dynamic Vision Sensor, DVS)，通过产生异步事件(on或OFF信号)来表示强度的变化。在2008年，第一个商业化事件相机\cite{lichtensteiner2008128x128}出现。
+%https://rpg.ifi.uzh.ch/docs/scaramuzza/Tutorial_on_Event_Cameras_Scaramuzza.pdf
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-cam-frame}
+	\caption{事件相机与传统相机输出流对比}
+	\label{fig:event-cam-frame}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-cam-vs-gopro}
+	\caption{事件相机在弱光环境下与普通相机(GoPro)在相同场景成像对比}
+	\label{fig:event-cam-vs-gopro}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-cam-comparison}
+	\caption{事件相机、高速相机与普通相机对比}
+	\label{fig:event-cam-comparison}
+\end{figure}
+时刻$t$，在像素位置$\mathbf{x} = \{u,v\}$产生事件，当且仅当，
+\begin{equation}\label{equ:event-cam-model}
+	\pm C=\log I(\boldsymbol{x}, t)-\log I(\boldsymbol{x}, t-\Delta t)
+\end{equation}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-trigger}
+	\caption{事件相机标触发事件示意图}
+	\label{fig:event-trigger}
+\end{figure}
+根据事件相机产生事件的原理(\ref{equ:event-cam-model})，根据论文\cite{gallego2020event}，定义$L(x,y,t) = \log(I(x,y,t))$则有如下性质：
+对于梯度为$\Delta L(x,y)$的像素$p(x,y)$
+\begin{equation}
+	\begin{aligned}
+		L(x,y,t)&=L(x+u,y+v,t+\Delta t)\\
+		\xRightarrow{\text{一阶泰勒展开}}L(x, y, t)&=L(x, y, t+\Delta t)+\frac{\partial L}{\partial x} u+\frac{\partial L}{\partial y} v \\
+		\Rightarrow& L(x, y, t+\Delta t)-L(x, y, t)=-\frac{\partial L}{\partial x} u-\frac{\partial L}{\partial y} v \\
+		\Rightarrow & -\Delta L \cdot \mathbf{u} = C
+	\end{aligned}
+\end{equation}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/edge-event}
+	\caption{运动导致物体边沿产生事件}
+	\label{fig:edge-event}
+\end{figure}
+即运动导致物体边沿产生事件，如图\ref{fig:edge-event}所示。
+\subsection{事件相机类型}
+\subsubsection{ATIS}
+(Asynchronous Time Based Image Sensor, ATIS)在触发事件的像素位置同时输出其光强。
+
+\subsubsection{DAVIS}
+(Dynamic and active pixel vision sensor, DAVIS)相机包含一个DVS输出单元和一个整帧主动像素单元(active pixel sensor, APS)，共享相同的像素阵列与光学元件，即相同的像素既可以触发事件又可以输出集成光强\cite{brandli2014240}，如图\ref{fig:davis-circuit}所示\cite{gallego2020event}。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/davis-circuit}
+	\caption{DAVIS相机包含一个DVS输出单元和一个APS单元，能同时输出事件以及普通的灰度图像。}
+	\label{fig:davis-circuit}
+\end{figure}
+其输出如图\ref{fig:davis-output}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/davis}
+	\caption{DAVIS相机输出时序}
+	\label{fig:davis-output}
+\end{figure}
+
+\subsection{DVS事件相机标定}
+%\paragraph{标定像素位置}\mbox{} \\
+与传统相机类似，事件相机由于采用了与传统相机相同的光学器件，因此产生事件的像素也满足传统的透视投影模型，即，
+\begin{equation}
+	\mathbf{p}_d = \pi(\mathbf{K},\mathbf{D}, \mathbf{T}, \mathbf{p}_w)
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\mathbf{p}_w$是世界坐标系的三维点
+	\item $\mathbf{K},\mathbf{D}$是事件相机的内参，分别为投影参数和畸变参数
+	\item $\mathbf{T}$是相机位姿
+	\item $\mathbf{p}_d$是图像上的带畸变的投影点
+\end{itemize}
+论文\cite{salah2023calib}指出，使用圆形标志点产生的事件与运动无关，即任何方向的运动标志点都能产生事件，如图\ref{fig:event-diff-targets}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-diff-targets}
+	\caption{圆形标志点和棋盘格在相机运动时产生事件的分布(红色)。注意，棋盘格平行于运动方向的边不产生事件}
+	\label{fig:event-diff-targets}
+\end{figure}
+使用圆形标志点的情况下，论文\cite{salah2023calib}提出一种基于事件的时空聚类提取圆心的方法。七步骤如下。
+\paragraph{预处理}\mbox{} \\
+对事件$\mathbf{e}_k = (x,y,t_k)$进行归一化处理，得到$\hat{\mathbf{e}}_k=(\frac{x}{W}, \frac{y}{H}, \frac{t_k-t_1}{\Delta t})$。
+\paragraph{聚类}\mbox{} \\
+利用基于密度的时空聚类算法ST-DBSCAN\cite{birant2007st}得到聚类的集合$C=\{I_1, I_2,...,I_J\}$，如图\ref{fig:event-cluster}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-cluster}
+	\caption{基于密度的时空聚类算法ST-DBSCAN在$\Delta t$的窗口内对归一化事件进行聚类的结果，相同颜色表示同一种聚类}
+	\label{fig:event-cluster}
+\end{figure}
+\paragraph{拟合斜圆柱}\mbox{} \\
+注意，同一聚类的事件组成的是斜圆柱体，即对于第$j$个圆柱体上的事件${^j}\hat{\mathbf{e}}_k = (x,y,t_k)$，以$t_{ref}=t_1$时刻图像坐标系原点所在位置为原点，图像xy轴为坐标轴，构建参考坐标系$\mathcal{F}_S$。以$t_j$时刻斜圆柱体对应的事件组成的圆心为原点，图像xy轴为坐标轴，构建参考坐标系$\mathcal{F}_{Bj}$，如图\ref{fig:event-transform}所示。定义${ }_S^B \mathcal{T}_j = \{\mathbf{R}_{\beta_j, \alpha_j}, \mathbf{t}_{u_j, v_j}\}$为$\mathcal{F}_S$到$\mathcal{F}_{Bj}$的转换，则
+%todo:double check，
+\begin{equation}
+	{^j}\tilde{\mathbf{e}}_k = (x,y,t_k) = \mathbf{R}_{\beta, \alpha}{^j}\hat{\mathbf{e}}_k+\mathbf{t}_{u_j, v_j}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\alpha_j, \beta_j$分别是坐标系$\mathcal{F}_S$到$\mathcal{F}_{Bj}$的相对于x、y轴的旋转角度。$\mathbf{R}_{\beta, \alpha}$是其对应的旋转矩阵
+	\item $\mathbf{t}_{u_j, v_j}$是坐标系$\mathcal{F}_S$指向$\mathcal{F}_{Bj}$的平移，$\{u_j, v_j\}$是$t_j$时刻斜圆柱体对应的事件组成的圆心
+\end{itemize}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-transform}
+	\caption{斜圆柱体坐标系定义}
+	\label{fig:event-transform}
+\end{figure}
+记$t_j$时刻斜圆柱体的半径为$r_j$，即$t_j$时刻第$j$个斜圆柱体参数为$\Omega_j=\{r_j, u_j, v_j, \alpha_j, \beta_j\}$。通过最小化拟合椭圆的误差，得到最优的椭圆参数，即
+\begin{equation}
+	\boldsymbol{\Omega}_j^*=\underset{\boldsymbol{\Omega}_j}{\arg \min } \sum_{k=1}^K(\underbrace{\left(\tilde{x}_k-u_j\right)^2+\left(\tilde{y}_k-v_j\right)^2-r_j^2}_{\boldsymbol{\xi}})^2
+\end{equation}
+为了降低事件聚类噪声的的影响，论文\cite{salah2023calib}提出一种重新分配权重的迭代最小二乘拟合椭圆方法。对于第$j$个斜圆柱体，其权重分布为，
+\begin{equation}
+	\mathbf{w}_j=\frac{1}{\sigma \sqrt{2 \pi}} e^{-(\boldsymbol{\xi} \mu)^2 / 2 \sigma^2}
+\end{equation}
+通过事件${^j}\tilde{\mathbf{e}}_k $的残差$\boldsymbol{\xi}_k$即可得到其对应权重$w_k$。通过最小化加权拟合椭圆的误差，得到最优的椭圆参数，即
+\begin{equation}
+	\boldsymbol{\Omega}_j^*=\underset{\boldsymbol{\Omega}_j}{\arg \min } \sum_k w_k \boldsymbol{\xi}^2
+\end{equation}
+\paragraph{外点剔除}\mbox{} \\
+上述拟合的得到的椭圆可能包含非目标标志点，如图\ref{fig:event-cylinder}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/event-cylinder}
+	\caption{提取的同步到参考时间$t_{ref}=t_1$的事件圆柱中心}
+	\label{fig:event-cylinder}
+\end{figure}
+外点剔除的核心思想是利用已知的标定板的先验即标志点的模式来提取。如对于均匀分布的等大小圆形标志点，论文\cite{salah2023calib}指出可以利用最大聚类截止法\cite{patel2015study}来提取真正的标志点对应的圆，进而提出背景的错误检测标志点。具体见章节\ref{chp:target}，这里不再赘述。%todo:add this algorithm
+\paragraph{优化}\mbox{} \\
+得到提取的圆心，通过最小化重投影误差即可得到相机的参数，即
+\begin{equation}
+	K^*, \Psi^*=\underset{K, \Psi}{\arg \min } \sum_{n=1}^N \sum_{i=1}^M\left\|\mathbf{U}_{n, i}-\pi\left(\mathbf{K},\mathbf{D},{ }^W \mathbf{p}_i,{ }_C^W \mathbf{T}\right)\right\|^2
+\end{equation}
+\begin{itemize}
+	\item $N, M$分别是标定板数目以及标定板对应的圆的数目
+	\item $\mathbf{K},\mathbf{D}$是事件相机的内参，分别为投影参数和畸变参数
+	\item ${ }_C^W \mathbf{T}$是相机位姿
+	\item ${ }^W \mathbf{p}_i$是圆心对应的标志点中心在标定板定义的世界坐标系$W$的位置
+\end{itemize}
+\subsection{DAVIS标定对比阈值}
+公式(\ref{equ:event-cam-model})假设DVS的触发事件的对比阈值$C$是恒定值。实际上，由于许多因素，如事件生成速度、强度变化、电路噪声和制造缺陷，每个像素的实际对比度阈值可能与期望的对比度阈值不同，根据论文\cite{wang2020event}，事件产生的模型(\ref{equ:event-cam-model})修改为逐像素偏置对比阈值模型(Per-pixel Biased Contrast Threshold)，即
+%\begin{equation}\label{equ:pbct-event-model}
+%	\delta(\mathbf{x})\left(c(\mathbf{x}) + b(\mathbf{x})\right)=\log I(\mathbf{x}, t)-\log I(\mathbf{x}, t-\Delta t)
+%\end{equation}
+\begin{equation}\label{equ:pbct-event-model}
+	\delta(\mathbf{x})= 
+	\begin{cases}
+		+1, & \log I(\mathbf{x}, t)-\log I(\mathbf{x}, t-\Delta t) \geq c(\mathbf{x}) + b(\mathbf{x}), \\ 
+		-1, & \log I(\mathbf{x}, t)-\log I(\mathbf{x}, t-\Delta t) \leq-c(\mathbf{x}) + b(\mathbf{x}),
+	\end{cases}
+\end{equation}
+即每个像素的的对比阈值不同，对比阈值的偏置也不同。如图\ref{fig:pbct-event-model}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/pbct-event-model}
+	\caption{逐像素偏置对比阈值模型。红色表示产生正事件，蓝色表示产生负事件。}
+	\label{fig:pbct-event-model}
+\end{figure}
+由于DVS事件的产生不影响APS灰度的产生，因此，对于任意的像素位置$\mathbf{x}$，$t_k$时刻到$t_{k+d}$时刻的光强满足(\ref{equ:pbct-event-model})，
+\begin{equation}
+%	\begin{aligned}
+		\sum_{t\in(t_k,t_{k+d})}
+		 \left[\begin{array}{cc}
+			\delta(\mathbf{x,t}) &
+			|\delta(\mathbf{x,t})|
+		\end{array}\right] 
+		\left[\begin{array}{c}
+			c(\mathbf{x}) \\
+			b(\mathbf{x})
+		\end{array}\right] 
+		= \log I(\mathbf{x}, t_{k+d})-\log I(\mathbf{x}, t_k)	
+%	\end{aligned}
+\end{equation}
+即假设$c(\mathbf{x}), b(\mathbf{x}$是固定值，仅与像素位置有关。则对于任意的$k,d$均成立，则有以下的线性方程，
+\begin{equation}
+	\left[\begin{array}{c}
+		\sum_{t\in(t_k,t_{k+d})}
+		\left[
+		\begin{array}{cc}
+			\delta(\mathbf{x,t}) & |\delta(\mathbf{x,t})|
+		\end{array}
+		\right] \\
+		\cdots \\
+		%
+		\sum_{t\in(t_{k+(n-1)d},t_{k+nd})}
+		\left[
+		\begin{array}{cc}
+			\delta(\mathbf{x,t}) & |\delta(\mathbf{x,t})|
+		\end{array}
+		\right] 
+%		\left[\sum_{t\in(t_{k+(n-1)d},t_{k+nd})}\delta(\mathbf{x,t}) |\delta(\mathbf{x,t})|\right]
+	\end{array}\right] 
+	\left[\begin{array}{c}
+		c(\mathbf{x}) \\
+		b(\mathbf{x})
+	\end{array}\right] 
+	= \left[\begin{array}{c}
+		\log I(\mathbf{x}, t_{k+d})-\log I(\mathbf{x}, t) \\
+		\cdots \\
+		\log I(\mathbf{x}, t_{k+nd})-\log I(\mathbf{x}, t_{k+(n-1)d})
+	\end{array}\right] 			
+\end{equation}
+求解该线性方程即可得到$c(\mathbf{x}), b(\mathbf{x})$。上述方法对所有的像素位置都适用。
+\subsubsection{DAVIS事件与普通相机标定}
+根据论文\cite{muglikar2021calibrate}，DAVIS相机的标定流程如图\ref{fig:davis-calibration}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{figure/event_cam/davis-calibration}
+	\caption{DAVIS相机标定流程}
+	\label{fig:davis-calibration}
+\end{figure}
+
+
+

@@ -1,6 +1,22 @@
-\section{IMU及其标定}
-
+\section{IMU}
+微机电(Micro-electromechanical Systems, MEMS)IMU以其便宜、便携、低功耗等优点被广泛应用于汽车、消费电子、机器人等行业。本章仅介绍MESM IMU。
 \subsection{IMU}
+IMU由加速度计和陀螺仪组成，有的还包含磁力计。根据论文\cite{woodman2007introduction}，陀螺仪的误差一般包含以下部分，
+\begin{itemize}
+	\item \textbf{零偏}(Constant Bias)。陀螺仪的零偏是陀螺仪不进行任何旋转时的平均输出，是一个固定的偏置
+	\item \textbf{热机械白噪声}(Thermo-Mechanical White Noise)。也叫角度随机游走(Angle Random Walk, ARW)
+	\item \textbf{零偏不稳定性}(Bias Instability)。也叫闪烁噪声(Flicker Noise)
+	\item \textbf{温度效应}
+	\item \textbf{标定误差}
+\end{itemize}
+类似地，加速度计的误差一般包含以下部分，
+\begin{itemize}
+	\item \textbf{零偏}(Constant Bias)。陀螺仪的零偏是陀螺仪不进行任何旋转时的平均输出，是一个固定的偏置
+	\item \textbf{热机械白噪声}(Thermo-Mechanical White Noise)。也叫速度随机游走(Velocity Random Walk, VRW)
+	\item \textbf{零偏不稳定性}(Bias Instability)。也叫闪烁噪声(Flicker Noise)
+	\item \textbf{温度效应}
+	\item \textbf{标定误差}
+\end{itemize}
 \subsubsection{IMU简单建模}
 \begin{figure}[H]
 	\centering
@@ -16,19 +32,19 @@ IMU的测量模型简单建模如图\ref{fig:imu-simple}所示，IMU的加速度
 \begin{equation}\label{equ:gyr-mea-model-simple}
 ^B\boldsymbol{\omega}_m ={^B}\boldsymbol{\omega}+{^B}\boldsymbol{\omega}_b+{^B}\boldsymbol{\omega}_n
 \end{equation}
-其中，${_W^B}\mathbf{R}$为惯性坐标系$W$到IMU本体坐标系$B$的旋转，${^W}\mathbf{g}$为惯性系下的重力加速度，${^W}\mathbf{a}$为惯性系下加速度的真值，${^B}\mathbf{\omega}$为本体坐标系下角速度的真值，${^B}\mathbf{a}_b$为加速度的零漂bias，${^B}\mathbf{\omega}_b$为角速度的零漂bias。零漂bias为高斯游走，即(省略坐标系符号)，
-\begin{equation}
-\begin{aligned}
-\dot{\mathbf{a}}_b &\sim N\left(0, \sigma_{\mathbf{a}_b}^2\right) \\
-\dot{\boldsymbol{\omega}}_b &\sim N\left(0, \sigma_{\boldsymbol{\omega}_b}^2\right) 
-\end{aligned}
+其中，${_W^B}\mathbf{R}$为惯性坐标系$W$到IMU本体坐标系$B$的旋转，${^W}\mathbf{g}$为惯性系下的重力加速度，${^W}\mathbf{a}$为惯性系下加速度的真值，${^B}\mathbf{\omega}$为本体坐标系下角速度的真值，${^B}\mathbf{a}_b$为加速度的零漂bias，${^B}\mathbf{\omega}_b$为角速度的零漂bias。零漂bias为随机游走，其一阶导服从高斯分布，即(省略坐标系符号)，
+\begin{equation}\label{equ:imu-bias-model}
+	\begin{aligned}
+		\dot{\mathbf{a}}_b &\sim N\left(0, \sigma_{\mathbf{a}_b}^2\right) \\
+		\dot{\boldsymbol{\omega}}_b &\sim N\left(0, \sigma_{\boldsymbol{\omega}_b}^2\right) 
+	\end{aligned}
 \end{equation}
 ${^B}\mathbf{a}_n, {^B}\mathbf{\omega}_n$分别为加速度、角速度的高斯白噪声，即(省略坐标系符号),
-\begin{equation}
-\begin{aligned}
-\mathbf{a}_n &\sim N\left(0, \sigma_{\mathbf{a}_n}^2\right) \\
-\boldsymbol{\omega}_n &\sim N\left(0, \sigma_{\boldsymbol{\omega}_n}^2\right)
-\end{aligned}
+\begin{equation}\label{equ:imu-gaussian-noise}
+	\begin{aligned}
+		\mathbf{a}_n &\sim N\left(0, \sigma_{\mathbf{a}_n}^2\right) \\
+		\boldsymbol{\omega}_n &\sim N\left(0, \sigma_{\boldsymbol{\omega}_n}^2\right)
+	\end{aligned}
 \end{equation}
 其中，$\sigma_{\mathbf{a}_b}, \sigma_{\boldsymbol{\omega}_b}, \sigma_{\mathbf{a}_n}, \sigma_{\boldsymbol{\omega}_n}$一般称作IMU的噪声参数。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,17 +158,131 @@ calibrated模型过于简单，对于低成本的消费级IMU来说，还存在�
 %	\end{aligned}
 \end{equation}
 其中，$^B\mathbf{R}_{xyz} = \left[{^B}\mathbf{r}_{x}, {^B}\mathbf{r}_{y}, {^B}\mathbf{r}_{z} \right]$分别表示加速度计xyz轴在本体坐标系下的平移，$diag()$表示提取矩阵对角元素的运算符。各轴分立的陀螺仪本文不考虑。%todo
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{静态噪声标定}
-IMU噪声标定一般采用Alan方差法\cite{woodman2007introduction}标定。
-
+IMU噪声标定即标定IMU的高斯噪声(\ref{equ:imu-gaussian-noise})和一阶零漂(
+\ref{equ:imu-bias-model})。一般采用Alan方差法\cite{woodman2007introduction}标定。以陀螺仪的$x$轴数据为例，计算Allan方差图的算法为\ref{alg:allan-deviation}，\\
+\begin{algorithm}[H]
+	\caption{Allan方差分析法噪声标定}%算法名字
+	\label{alg:allan-deviation}
+	\LinesNumbered %要求显示行号
+	\KwIn{长时间静态IMU数据的角速度$x$轴分量$\{\boldsymbol{\omega}_x\}$}%输入参数
+	\KwOut{噪声参数$\sigma_{\boldsymbol{\omega}_{nx}}, \sigma_{\boldsymbol{\omega}_{bx}}$}%输出
+	设置最大分段数$N$，计算最小分段长度$\Delta t = \frac{t_{max}-t_{min}}{N}$\;
+	\For{$i=1; i \le N; i++$}{
+		设置每分段数据长度$t=i*\Delta t$以及分段数$n=\frac{t_{max}-t_{min}}{t}$\;
+		根据测量的时间戳，以$t$为长度，将$\{\boldsymbol{\omega}_x\}$数据分成$n$段\;
+		计算每个分段内测量数据的平均值$\{\bar{\boldsymbol{\omega}}_{x,1}, \bar{\boldsymbol{\omega}}_{x,2},\cdots,\bar{\boldsymbol{\omega}}_{x,n}\}$\;
+		计算Allan方差$AVAR(t)=\frac{1}{2(n-1)}\sum_{j=1}^{n-1}\left(\boldsymbol{\omega}_{x,j+1}-\boldsymbol{\omega}_{x,j}\right)^2$\;
+		计算标准差$AD(t)=\sqrt{AVAR(t)}$\;
+	}
+	以$log(t)$为横轴，$log(AD(t))$为纵轴画Allan方差图
+\end{algorithm}
+一个可能得到Allan方差图如图\ref{fig:imu-allan}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/allan}
+	\caption{对数坐标IMU Allan方差分析图}
+	\label{fig:imu-allan}
+\end{figure}
 \subsection{独立IMU内参标定}
 %https://tianchi.aliyun.com/forum/post/77528
 
 \subsection{IMU预积分}
+%参考《预积分总结与公式推导》
+\begin{equation}
+	\begin{aligned}
+		\mathbf{R}(t+\Delta t) & =\mathbf{R}(t) \cdot \operatorname{Exp}(\boldsymbol{\omega}(t) \cdot \Delta t) \\
+		& =\mathbf{R}(t) \cdot \operatorname{Exp}\left(\left(\tilde{\boldsymbol{\omega}}(t)-\mathbf{b}_g(t)-\boldsymbol{\eta}_{g d}(t)\right) \cdot \Delta t\right) \\
+		\mathbf{v}(t+\Delta t) & =\mathbf{v}(t)+\mathbf{a}^w(t) \cdot \Delta t \\
+		& =\mathbf{v}(t)+\mathbf{R}(t) \cdot\left(\tilde{\mathbf{f}}(t)-\mathbf{b}_a(t)-\boldsymbol{\eta}_{a d}(t)\right) \cdot \Delta t+\mathbf{g} \cdot \Delta t \\
+		\mathbf{p}(t+\Delta t) & =\mathbf{p}(t)+\mathbf{v}(t) \cdot \Delta t+\frac{1}{2} \mathbf{a}^w(t) \cdot \Delta t^2 \\
+		& =\mathbf{p}(t)+\mathbf{v}(t) \cdot \Delta t+\frac{1}{2}\left[\mathbf{R}(t) \cdot\left(\tilde{\mathbf{f}}(t)-\mathbf{b}_a(t)-\boldsymbol{\eta}_{a d}(t)\right)+\mathbf{g}\right] \cdot \Delta t^2 \\
+		& =\mathbf{p}(t)+\mathbf{v}(t) \cdot \Delta t+\frac{1}{2} \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \mathbf{R}(t) \cdot\left(\tilde{\mathbf{f}}(t)-\mathbf{b}_a(t)-\boldsymbol{\eta}_{a d}(t)\right) \cdot \Delta t^2
+	\end{aligned}
+\end{equation}
+假设$\Delta t$恒定，上述方程可以简化为，
+\begin{equation}
+	\begin{aligned}
+		& \mathbf{R}_{k+1}=\mathbf{R}_k \cdot \operatorname{Exp}\left(\left(\tilde{\boldsymbol{\omega}}_k-\mathbf{b}_k^g-\boldsymbol{\eta}_k^{g d}\right) \cdot \Delta t\right) \\
+		& \mathbf{v}_{k+1}=\mathbf{v}_k+\mathbf{R}_k \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t+\mathbf{g} \cdot \Delta t \\
+		& \mathbf{p}_{k+1}=\mathbf{p}_k+\mathbf{v}_k \cdot \Delta t+\frac{1}{2} \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \mathbf{R}_k \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t^2
+	\end{aligned}
+\end{equation}
+利用欧拉积分，
+\begin{equation}
+	\begin{aligned}
+		\mathbf{R}_j & =\mathbf{R}_i \cdot \prod_{k=i}^{j-1} \operatorname{Exp}\left(\left(\tilde{\mathbf{\omega}}_k-\mathbf{b}_k^g-\boldsymbol{\eta}_k^{g d}\right) \cdot \Delta t\right) \\
+		\mathbf{v}_j & =\mathbf{v}_i+\mathbf{g} \cdot \Delta t_{i j}+\sum_{k=i}^{j-1} \mathbf{R}_k \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t \\
+		\mathbf{p}_j & =\mathbf{p}_i+\sum_{k=i}^{j-1} \mathbf{v}_k \cdot \Delta t+\frac{j-i}{2} \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \sum_{k=i}^{j-1} \mathbf{R}_k \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t^2 \\
+		& =\mathbf{p}_i+\sum_{k=i}^{j-1}\left[\mathbf{v}_k \cdot \Delta t+\frac{1}{2} \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \mathbf{R}_k \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t^2\right] \\
+		\text { 其中 } \Delta t_{i j} & =\sum_{k=i}^{j-1} \Delta t=(j-i) \Delta t
+	\end{aligned}
+\end{equation}
+其中，$\Delta t_{i j}=\sum_{k=i}^{j-1} \Delta t=(j-i) \Delta t$。为了避免每次更细$\mathbf{R}_i，\mathbf{v}_i, \mathbf{p}_i$都需要重新积分求解$\mathbf{R}_j，\mathbf{v}_j, \mathbf{p}_j$，引入预积分项，
+\begin{equation}
+	\begin{aligned}
+		\Delta \mathbf{R}_{i j} & \triangleq \mathbf{R}_i^T \mathbf{R}_j \\
+		& =\prod_{k=i}^{j-1} \operatorname{Exp}\left(\left(\tilde{\mathbf{o}}_k-\mathbf{b}_k^g-\boldsymbol{\eta}_k^{g d}\right) \cdot \Delta t\right) \\
+		\Delta \mathbf{v}_{i j} & \triangleq \mathbf{R}_i^T\left(\mathbf{v}_j-\mathbf{v}_i-\mathbf{g} \cdot \Delta t_{i j}\right) \\
+		& =\sum_{k=i}^{j-1} \Delta \mathbf{R}_{i k} \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t \\
+		\Delta \mathbf{p}_{i j} & \triangleq \mathbf{R}_i^T\left(\mathbf{p}_j-\mathbf{p}_i-\mathbf{v}_i \cdot \Delta t_{i j}-\frac{1}{2} \mathbf{g} \cdot \Delta t_{i j}^2\right) \\
+		& =\sum_{k=i}^{j-1}\left[\Delta \mathbf{v}_{i k} \cdot \Delta t+\frac{1}{2} \Delta \mathbf{R}_{i k} \cdot\left(\tilde{\mathbf{f}}_k-\mathbf{b}_k^a-\boldsymbol{\eta}_k^{a d}\right) \cdot \Delta t^2\right]
+	\end{aligned}
+\end{equation}
+其中，$\Delta \mathbf{p}_{i j}$的推导如下，
+\begin{equation}
+	\begin{aligned}
+		& \mathbf{p}_j-\mathbf{p}_i-\mathbf{v}_i \cdot \Delta t_{i j}-\frac{1}{2} \mathbf{g} \cdot \Delta t_{i j}^2 \\
+		= & \sum_{k=i}^{j-1}\left(\mathbf{v}_k \cdot \Delta t+\frac{1}{2} \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \mathbf{R}_k \xi_k \cdot \Delta t^2\right)-\sum_{k=i}^{j-1} \mathbf{v}_i \cdot \Delta t-\frac{(j-i)^2}{2} \mathbf{g} \cdot \Delta t^2 \\
+		= & \sum_{k=i}^{j-1}\left(\mathbf{v}_k-\mathbf{v}_i\right) \Delta t+\left[\frac{j-i}{2}-\frac{(j-i)^2}{2}\right] \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \sum_{k=i}^{j-1} \mathbf{R}_k \xi_k \cdot \Delta t^2 \\
+		= & \sum_{k=i}^{j-1}\left(\mathbf{v}_k-\mathbf{v}_i\right) \Delta t-\sum_{k=i}^{j-1}(k-i) \mathbf{g} \cdot \Delta t^2+\frac{1}{2} \sum_{k=i}^{j-1} \mathbf{R}_k \xi_k \cdot \Delta t^2 \\
+		= & \sum_{k=i}^{j-1}\left\{\left[\mathbf{v}_k-\mathbf{v}_i-(k-i) \mathbf{g} \cdot \Delta t\right] \Delta t+\frac{1}{2} \mathbf{R}_k \boldsymbol{\xi}_k \cdot \Delta t^2\right\} \\
+		= & \sum_{k=i}^{j-1}\left[\left(\mathbf{v}_k-\mathbf{v}_i-\mathbf{g} \cdot \Delta t_{i k}\right) \Delta t+\frac{1}{2} \mathbf{R}_k \boldsymbol{\xi}_k \cdot \Delta t^2\right] \\
+		= & \sum_{k=i}^{j-1}\left[\mathbf{R}_i \cdot \Delta \mathbf{v}_{i k} \cdot \Delta t+\frac{1}{2} \mathbf{R}_k \boldsymbol{\xi}_k \cdot \Delta t^2\right]
+	\end{aligned}
+\end{equation}
 
-%\subsubsection{直接IMU测量误差因子}
-%
-%\subsubsection{IMU预积分误差因子}
-
-
+\subsection{读懂IMU数据手册}
+%http://i2nav.cn/index/newListDetail_zw.do?newskind_id=13a8654e060c40c69e5f3d4c13069078&newsinfo_id=d4fc52fc6eff4be5859e18406b62d46d
+以BMI088为例，其加速度计的技术参数为，
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/imu/bmi088-acc-spec}
+	\caption{BMI088加速度计技术参数}
+	\label{fig:bmi088-acc-spec}
+\end{figure}
+其中，
+\begin{itemize}
+	\item 量程(Range)指可测量的加速度的最大值，这里的单位是$g$
+	\item 灵敏度(Sensitivity)指标度因子，ADC的输出量乘以灵敏度即为测量值。灵敏度与量程的关系为：$\text{灵敏度} = \frac{2^\text{ADC位数}}{\text{满量程}}$。这里，BMI088加速度计的ADC是16位，当量程档设置为$\pm 3g$时，满量程是$6g$，则灵敏度为$\frac{2^{16}}{6}=10922$(理论值与表格的典型值可能有微小差别)。这里的单位LSB(Least Significant Bit)指最低有效位
+	\item 灵敏度温漂(Sensitivity Temperature Drift)
+	\item 零重力偏置(Zero-g Offset)指加速度计的零偏(也叫bias, bias repeatability等)，即加速度计在零重力环境下的输出，理想情况下应该为0
+	\item 零重力偏置温漂(Zero-g Offset Temperature Drift)指加速度计零偏的温度漂移，即零偏随稳定变化的变化量
+	\item 输出帧率(Out Data Rate)指加速度计测量输出帧率。对于BMI088，最低为12.5Hz，最高为16000HZ。
+	\item 带宽(Bandwidth range)指由输出帧率(ODR)和过采样(over sampling ratio, OSR)共同决定的输出数据低通滤波器对应的3dB带宽截止频率
+	\item 非线性(Nonlinearity)指满量程直线拟合后的残差
+	\item 输出噪声密度(Output Noise Density)指加速度计输出的白噪声，也叫速度随机游走(Velocity Random Walk, VRW)
+	\item 跨轴灵敏度(Cross Axis Sensitivity)指任意两轴之间相互影响程度
+	\item 对齐误差(Alignment Error)指相对于外封装的对齐误差
+\end{itemize}
+陀螺仪的技术参数为，
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.9\textwidth]{figure/imu/bmi088-gyr-spec}
+	\caption{BMI088陀螺仪技术参数}
+	\label{fig:bmi088-gyr-spec}
+\end{figure}
+与加速度计类似，特别地，陀螺仪还有以下参数需要注意，
+\begin{itemize}
+%	\item 灵敏度公差(Sensitivity tolerance)
+%	\item 灵敏度供电电压漂移()
+	\item 零角速度偏置(Zero-rate Offset)
+	\item g灵敏度(g-sensitivity)指加速度激励对陀螺仪三轴灵敏度的影响
+%	\item 输出帧率
+%	\item 带宽
+%	\item 非线性，
+	\item 输出噪声(Output Noise)指噪声幅度RMS值，与噪声的功率谱密度、者角度随机游走(Angular Random Walk, ARW)或者噪声密度(Rate Noise Density)之间的转换公式为$\text{RMS}=\text{AWR}*\sqrt{Bandwidth}$
+%	\item 跨轴灵敏度
+%	\item 对齐误差
+\end{itemize}

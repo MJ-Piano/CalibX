@@ -1604,6 +1604,28 @@ FUNCTION {online} {                               % void Entry::online() {
 }                                                 % }
                                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+FUNCTION {software} {                           % void Entry::online() {
+"SO" set.mark                                   %   set_mark("SO");
+start.bibitem                                   %   start_bibitem();
+true output.author                             %   output_author(true);
+true output.title                               %   output_title(true);
+true output.mark                                %   output_mark(true);
+publisher empty$ not {                          %   if (! empty(this.publisher)) {
+true output.address                           %     output_address(true);
+true output.publisher                         %     output_publisher(true);
+cap.comma write$                              %     write(cap_comma);
+} {                                             %   } else {
+cap.period write$                             %     write(cap_period);
+} if$                                           %   }
+true output.year                                %   output_year(true);
+false output.modifydate                         %   output_modifydate(false);
+true output.citedate                            %   output_citedate(true);
+true output.url                                 %   output_url(true);
+end.bibitem                                     %   end_bibitem();
+}                                                 % }
+%                                                  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                                   %
 FUNCTION {program.impl} {                         % void Entry::program_impl() {
   start.bibitem                                   %   start_bibitem();

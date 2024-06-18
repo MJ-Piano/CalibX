@@ -2,7 +2,20 @@
 \subsection{根据FOV分类}
 
 \subsubsection{普通相机}
+%图片来源：https://de.mathworks.com/help/vision/ug/camera-calibration.html
 普通相机相机模型是简化的OpenCV的针孔相机模型\cite{opencvfisheye}。以下以pinhole-brwon模型为例。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/cam/cam-radial-distortion}
+	\caption{相机径向畸变}
+	\label{fig:cam-radial-distortion}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/cam/cam_tangential_distortion}
+	\caption{相机切向畸变}
+	\label{fig:cam-tangential-distortion}
+\end{figure}
 \begin{itemize}
 	\item \textbf{正向模型}
 \end{itemize}
@@ -858,8 +871,8 @@ RS相机标定通过最小化重投影误差来优化求解未知参数. 代价�
 	\mathbb{E}[\boldsymbol{J}] = \sum_{i=0}^{N}\mathbb{E}[\bar{\boldsymbol{e}}_{k,i}^T\bar{\boldsymbol{e}}_{k,i}] = 2N
 \end{equation}
 其中, N为重投影误差项的数量. 为了检测过拟合, 可以比较$ J $和其期望值$\mathbb{E}[J] $.  当样条段的 $ J > \mathbb{E}[J] $时, 则表明样条没有足够的knots来表示该段的运动, 因此增加该段的节点. $ t_{new} = rac{1}{2}(t_{j-1} + t_{j}) $ 其中, $ t_{j} $表示第j个节点.注意, 节点数目一般设置偏少,然后通过上面的判断规则, 进行节点更新策略.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsubsection{事件相机}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{单相机标定}
 \subsubsection{单标定板单相机标定}
@@ -915,3 +928,9 @@ RS相机标定通过最小化重投影误差来优化求解未知参数. 代价�
 \end{equation}
 \subsubsection{无重叠视场多相机标定}
 无重叠视场多相机标定使用手眼标定方法初始化相机链条，即假设相机c的外参为$\mathbf{T}_c=\{\mathbf{T}_{c0},\mathbf{T}_{c1}\dots\}$，相机a的外参为$\mathbf{T}_a=\{\mathbf{T}_{a0},\mathbf{T}_{a1}\dots\}$。手眼标定旨在寻找一个最优的转换矩阵$\mathbf{B}_{ca}$，使得$\mathbf{T}_a$和$\mathbf{T}_c$对齐误差最小。需要注意的是，手眼标定要求$\mathbf{T}_a$和$\mathbf{T}_c$外参数目一致。对于使用OpenCV进行单板单相机标定中，标定板并不能保证任意时刻都能看到。因此，在使用OpenCV进行单板单相机标定后，再使用所有标定板的观测，重新计算相机外参以保证所有时刻的相机外参都能求解出来。实际上，相机链条总是相机0$\rightarrow$相机1$\rightarrow$相机2$\rightarrow\dots\rightarrow$相机C-1。记baselines为$\mathbf{B}=\{\mathbf{B}_0,\mathbf{B}_1,...,\mathbf{B}_{C-1}\}$，其中$\mathbf{B}_c=\{\mathbf{R}_c,\mathbf{t}_c\}$表示相机c到相机c+1的转换矩阵。同样的，仅优化相机0的外参$\mathbf{T}_0$。
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{非参数化相机模型}
+
+

@@ -1,8 +1,42 @@
 \pagenumbering{arabic}
 \section{数学基础}
+\subsection{符号定义}
+\begin{itemize}
+	\item 加粗大写字母表示矩阵，如旋转矩阵$\mathbf{R}$
+	\item 加粗小写字母表示向量，如速度$\mathbf{v}$
+	\item 大写字母表示固定标量，如光速$C$
+	\item 小写字母表示标量，如时间$t$
+	\item 花体表示坐标系，如相机坐标系$\mathcal{C}$
+	\item 空心字体表示集合，如实数集$\mathbb{R}$
+\end{itemize}
+\subsubsection{坐标系}
+\begin{itemize}
+	\item 世界坐标系$\mathcal{W}$
+	\item IMU坐标系$\mathcal{I}$，一般也是本体坐标$\mathcal{B}$
+	\item 相机坐标系$\mathcal{C}$
+	\item 雷达坐标系$\mathcal{L}$
+	\item 机器人坐标系$\mathcal{R}$，指机器人的重心
+	\item 轮式里程计坐标系$\mathcal{O}$，指两轮轴的中心
+	\item GPS坐标系$\mathcal{G}$
+\end{itemize}
 \subsection{位姿及其表示方式}
 
 \subsection{刚体运动}
+%https://pubs.cstam.org.cn/data/article/mie/preview/pdf/2018-1-75.pdf
+三维空间中，刚体作定轴转动，如图\ref{fig:rigid-body-motion}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/math/rigid-body-motion}
+	\caption{三维空间中，刚体作定轴转动}
+	\label{fig:rigid-body-motion}
+\end{figure}
+则刚体上一点$\mathbf{p}$的速度$\mathbf{v}$和加速度$\mathbf{a}$与刚体的角速度$\boldsymbol{\omega}$和角加速度$\boldsymbol{\alpha}$之间的关系式为，
+\begin{equation}
+	\begin{aligned}
+		\mathbf{v} &= \boldsymbol{\omega} \times \mathbf{r} \\
+		\mathbf{a} &= \dot{\mathbf{v}} = \dot{\boldsymbol{\omega}} \times \mathbf{r} + \boldsymbol{\omega} \times \mathbf{v} = \boldsymbol{\alpha} \times \mathbf{r} + \boldsymbol{\omega} \times \mathbf{v}
+	\end{aligned}
+\end{equation}
 
 \subsection{B样条}
 \subsubsection{B样条标准基本形式}
@@ -246,21 +280,171 @@ B样条(B-Spline)\cite{geneva2018research}由一系列控制点(也被称为“�
 %	\boldsymbol{\Omega}_i=\operatorname{Log} \left(\overline{\mathbf{T}}_{i-1}^{-1} \overline{\mathbf{T}}_i\right)
 %\end{equation}
 %$\left\{\overline{\mathbf{T}}_l\right\}_{l=\{0, \ldots, M\}}, \overline{\mathbf{T}}_l \in \mathrm{SE}(3)$是样条的控制点，表示位姿。变换$\operatorname{Exp}:\mathbb{R}^6 \rightarrow \mathrm{SE}(3)$，即将6维向量转成位姿矩阵。其逆变换为$\operatorname{Log}:\mathrm{SE}(3) \rightarrow \mathbb{R}^6$，即将位姿矩阵转成6维向量。
+\subsection{微积分}
+\subsubsection{三角函数微积分}
+余弦函数，
+\begin{equation}\label{equ:integrate_cos}
+	\begin{aligned}
+		& \int \cos (b t+a) d t \\
+		& \xlongequal{x=bt+a, t=\frac{x-a}{b}} \int \cos (x) d (\frac{x-a}{b}) \\
+		& = \int \frac{\cos (x)}{b} d x \\
+		& = \frac{sin(x)}{b} + C \\
+		& = \frac{sin(bt+a)}{b} + C
+%		& \overset{x=bt+a, t=\frac{x-a}{b}, dt=\frac{dx}{b}}{=} \int \frac{\cos (x)}{b} d x
+	\end{aligned}	
+\end{equation}
+正弦函数，
+\begin{equation}\label{equ:integrate_sin}
+	\begin{aligned}
+		& \int \sin (b t+a) d t \\
+		& \xlongequal{x=bt+a, t=\frac{x-a}{b}} \int \sin (x) d (\frac{x-a}{b}) \\
+		& = \int \frac{\sin (x)}{b} d x \\
+		& = -\frac{cos(x)}{b} + C \\
+		& = -\frac{cos(bt+a)}{b} + C
+		%		& \overset{x=bt+a, t=\frac{x-a}{b}, dt=\frac{dx}{b}}{=} \int \frac{\cos (x)}{b} d x
+	\end{aligned}	
+\end{equation}
+\subsection{线性问题}
 
-\subsection{非线性优化}
+
+\subsection{非线性问题}
+%https://www.rtklib.com/prog/manual_2.4.2.pdf
+假设测量$\mathbf{z}$与状态变量$\mathbf{x}$之间通过非线性函数$\mathbf{h}(\cdot)$联系，即
+\begin{equation}\label{equ:nonlinear-model}
+	\mathbf{z} = \mathbf{h}(\mathbf{x})+\mathbf{v}
+\end{equation}
+其中$\mathbf{v}$表示测量噪声，一般建模成高斯噪声。公式(\ref{equ:nonlinear-model})的一阶泰勒展开式为，
+\begin{equation}\label{equ:nonlinear-taylor-model}
+	\mathbf{z} \approx \mathbf{h}(\mathbf{x}_0)+\mathbf{J}(\mathbf{x}-\mathbf{x}_0) +\mathbf{v}
+\end{equation}
+其中，$\mathbf{x}_0$是当前状态变量的初值，$\mathbf{J}$是$\mathbf{h}(\mathbf{x})$在$\mathbf{x}=\mathbf{x}_0$处相对于$\mathbf{x}$的偏导数，即
+\begin{equation}
+	\mathbf{J}=\left.\frac{\partial \mathbf{h}(\mathbf{x})}{\partial \mathbf{x}}\right|_{\mathbf{x}=\mathbf{x}_0}
+\end{equation}
+问题(\ref{equ:nonlinear-taylor-model})转变为线性问题，即
+\begin{equation}\label{equ:nonlinear2linear-model}
+	\mathbf{z} - \mathbf{h}(\mathbf{x}_0) = \mathbf{J}(\mathbf{x}-\mathbf{x}_0) +\mathbf{v}
+\end{equation}
+类似于线性问题的求解，
+\begin{equation}
+	\mathbf{J}^T \mathbf{W} \mathbf{J}\left(\hat{\mathbf{x}}-\mathbf{x}_0\right)=\mathbf{J}^T \mathbf{W}\left(\mathbf{z}-\mathbf{h}\left(\mathbf{x}_0\right)\right)
+\end{equation}
+因此得到状态变量的估计值，
+\begin{equation}
+	\hat{\mathbf{x}}=\mathbf{x}_0+\left(\mathbf{J}^T \mathbf{W} \mathbf{H}\right)^{-1} \mathbf{J}^T \mathbf{W}\left(\mathbf{z}-\mathbf{h}\left(\mathbf{x}_0\right)\right)
+\end{equation}
+一般初值离收敛值较远的情况下，需要多次迭代以得到更好的状态估计值。完整的高斯-牛顿法求解非线性问题如算法(\ref{alg:gauss-newton})所示。\\
+\SetKwRepeat{Do}{do}{while}%
+%\setcounter{algorithm}{3}
+\begin{algorithm}[H]
+	\caption{高斯-牛顿法求解非线性问题}%算法名字
+	\label{alg:gauss-newton}
+	\LinesNumbered %要求显示行号
+	\KwIn{状态变量初始值$\mathbf{x}_0$}%输入参数
+	\KwOut{状态变量收敛值$\hat{\mathbf{x}}$}%输出
+	设置状态收敛阈值$\epsilon_x$，设置迭代次数$i=0$和最大迭代次数$N$，设置代价函数$\mathbf{r}_i = 0$及代价变化量阈值$\epsilon_r$\; %\;用于换行
+	\Do{$\left\| \mathbf{x}_{i+1}-\mathbf{x}_i\right\|_2>\epsilon$ and $i<N$}{
+		计算测量估计$\mathbf{h}(\mathbf{x}_i)$和雅克比矩阵$\mathbf{J}_i=\left.\frac{\partial \mathbf{h}(\mathbf{x})}{\partial \mathbf{x}}\right|_{\mathbf{x}=\mathbf{x}_i}$\;
+		求解状态变量${\mathbf{x}_{i+1}}=\mathbf{x}_i+\left(\mathbf{J}^T_i \mathbf{W} \mathbf{H}\right)^{-1} \mathbf{J}^T_i \mathbf{W}\left(\mathbf{z}-\mathbf{h}\left(\mathbf{x}_i\right)\right)$ \;
+		计算代价$\mathbf{r}_{i+1} = \mathbf{z} - \mathbf{h}(\mathbf{x}_{i+1})$\;
+		\If{$\left\| \mathbf{r}_{i+1}-\mathbf{r}_i\right\|_2<\epsilon_r$}{
+			break\;
+		}
+		更新迭代次数$i=i+1$\;
+	}
+\end{algorithm}
+其中，设置了三种常见的判断迭代收敛的方法，即更新前后状态变量的变化量小于阈值、迭代次数小于最大迭代次数、更新前后代价的变化量小于阈值。
+
+\subsection{最小二乘问题}
+最小二乘问题是一种特殊非线性问题，实践中遇到的很多优化问题都是最小二乘问题，其形式为，
+\begin{equation}\label{equ:least-square-problem}
+	\min_{\mathbf{x}}\frac{1}{2}\sum_{i}\Vert \mathbf{z}_i - \mathbf{h}_i(\mathbf{x}) \Vert^2
+\end{equation}
+该问题为无约束最小二乘问题。其中，$\mathbf{x}$是待优化的状态变量，$\mathbf{z}_i$是第$i$个观测，通过非线性函数$\mathbf{h}_i(\cdot)$与状态变量联系。Ceres\cite{AgarwalCeresSolver2022}可以很方便的求解上述最小二乘问题，并支持状态变量的上下界约束，即
+\begin{equation}\label{equ:least-square-problem-bound}
+	\begin{aligned}
+		& \min_{\mathbf{x}}\frac{1}{2}\sum_{i}\Vert \mathbf{z}_i - \mathbf{h}_i(\mathbf{x}) \Vert^2 \\
+		& \mbox{s.t.}\quad l_i<x_i<u_i
+	\end{aligned}
+\end{equation}
+该问题为界约束最小二乘问题。其中，$l_i, u_i$分别是状态变量$x_i$的下界和上界。当$l_i=u_i$时，上下界约束变成常值约束，即Ceres支持设置某些状态变量为常值，即，
+\begin{equation}\label{equ:least-square-problem-constant}
+	\begin{aligned}
+		& \min_{\mathbf{x}}\frac{1}{2}\sum_{i}\Vert \mathbf{z}_i - \mathbf{h}_i(\mathbf{x}) \Vert^2 \\
+		& \mbox{s.t.}\quad x_i=C
+	\end{aligned}
+\end{equation}
+该问题为常值约束最小二乘问题。其中，$C$是常量。特别地，对于加权最小二乘问题有，
+\begin{equation}\label{equ:weight-least-square-problem}
+	\min_{\mathbf{x}}\frac{1}{2}\sum_{i}\Vert \mathbf{W}_i(\mathbf{z}_i - \mathbf{h}_i(\mathbf{x})) \Vert^2
+\end{equation}
+其中，$\mathbf{W}_i$是观测$\mathbf{z}_i$的权重矩阵。
 \subsubsection{因子图}
+除了Ceres，加权最小二乘问题还可以用因子图的方式来构建和求解(当然，因子图不仅仅能求解加权最小二乘问题)，如图\ref{fig:factor-graph}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/math/factor_graph}
+	\caption{因子图。黑色圆圈节点$\mathbf{x}_{i}$表示待优化的状态变量。$\mathbf{e}_{ij}$表示节点$\mathbf{x}_{i}$与$\mathbf{x}_{j}$之间存在观测约束}
+	\label{fig:factor-graph}
+\end{figure}
+以G2O\cite{kummerle2011g}为例，其求解的问题为，
+\begin{equation}\label{equ:g2o-least-square-problem}
+	\begin{aligned}
+		\mathbf{F}(\mathbf{x}) & =\sum_{\langle i, j\rangle \in \mathcal{C}} \underbrace{\mathbf{e}\left(\mathbf{x}_i, \mathbf{x}_j, \mathbf{z}_{i j}\right)^{\top} \boldsymbol{\Omega}_{i j} \mathbf{e}\left(\mathbf{x}_i, \mathbf{x}_j, \mathbf{z}_{i j}\right)}_{\mathbf{F}_{i j}} \\
+		\mathbf{x}^* & =\underset{\mathbf{x}}{\operatorname{argmin}} \mathbf{F}(\mathbf{x}) .
+	\end{aligned}
+\end{equation}
+其中，$\mathbf{e}\left(\mathbf{x}_i, \mathbf{x}_j, \mathbf{z}_{i j}\right)$表示节点$\mathbf{x}_{i}$与$\mathbf{x}_{j}$之间存在观测约束$\mathbf{z}_{ij}$，即
+\begin{equation}
+	\mathbf{e}\left(\mathbf{x}_i, \mathbf{x}_j, \mathbf{z}_{i j}\right) = \mathbf{z}_{ij} - \mathbf{h}_{ij}(\mathbf{x}_i, \mathbf{x}_j)
+\end{equation}
+$\boldsymbol{\Omega}_{i j}$是节点$\mathbf{x}_{i}$与$\mathbf{x}_{j}$之间观测的信息矩阵，是实对称正定矩阵，对信息矩阵进行Cholesky分解有，
+\begin{equation}
+	\boldsymbol{\Omega}_{i j} = \mathbf{L}_{ij}\mathbf{L}_{ij}^\top
+\end{equation}
+则公式(\ref{equ:g2o-least-square-problem})可以写成，
+\begin{equation}\label{equ:least-square-problem}
+	\min_{\mathbf{x}}\frac{1}{2}\sum_{i}\Vert \mathbf{L}_{ij} \mathbf{e}\left(\mathbf{x}_i, \mathbf{x}_j, \mathbf{z}_{i j}\right) \Vert^2
+\end{equation}
 
-\subsubsection{求解}
+\subsection{三角函数相关公式}
+积化和差公式，
+\begin{equation}\label{equ:product2sum}
+	\begin{aligned}
+		\sin \alpha \cos \beta & =\frac{1}{2}[\sin (\alpha+\beta)+\sin (\alpha-\beta)] \\
+		\cos \alpha \sin \beta & =\frac{1}{2}[\sin (\alpha+\beta)-\sin (\alpha-\beta)] \\
+		\cos \alpha \cos \beta & =\frac{1}{2}[\cos (\alpha+\beta)+\cos (\alpha-\beta)] \\
+		\sin \alpha \sin \beta & =-\frac{1}{2}[\cos (\alpha+\beta)-\cos (\alpha-\beta)]
+	\end{aligned}
+\end{equation}
+和差化积公式，
+\begin{equation}\label{equ:sum2product}
+	\begin{aligned}
+		& \sin \alpha+\sin \beta=2 \sin \frac{\alpha+\beta}{2} \cos \frac{\alpha-\beta}{2} \\
+		& \sin \alpha-\sin \beta=2 \cos \frac{\alpha+\beta}{2} \sin \frac{\alpha-\beta}{2}
+	\end{aligned}
+\end{equation}
+合角公式，
+\begin{equation}\label{equ:sum-angle}
+	\begin{aligned}
+		& \sin (\alpha+\beta)=\sin \alpha \cos \beta+\cos \alpha \sin \beta \\
+		& \sin (\alpha-\beta)=\sin \alpha \cos \beta-\cos \alpha \sin \beta \\
+		& \cos (\alpha+\beta)=\cos \alpha \cos \beta-\sin \alpha \sin \beta \\
+		& \cos (\alpha-\beta)=\cos \alpha \cos \beta+\sin \alpha \sin \beta
+	\end{aligned}
+\end{equation}
 
-
-
-
-
-
-
-
-
-
+\subsection{信号处理}
+\subsubsection{互相关}
+%https://en.wikipedia.org/wiki/Cross-correlation
+对于两个连续实函数$f(t)$和$g(t)$，其互相关定义为，
+\begin{equation}
+	f(t) \star g(t) = \int_{-\infty}^{\infty}f(t)g(t+\tau)dt
+\end{equation}
+如果$f(t)$和$g(t)$均是周期为$T$的连续周期函数，则积分区间$\left[-\infty, \infty\right]$可以替换成任意的宽度为$T$的积分区间，即
+\begin{equation}\label{equ:cross-product-cp}
+	f(t) \star g(t) = \int_{t_0}^{t_0+T}f(t)g(t+\tau)dt
+\end{equation}
 
 
 

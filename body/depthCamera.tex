@@ -1,5 +1,147 @@
 \section{深度相机}
-
+%A Brief Analysis of the Principles of Depth Cameras: Structured Light, TOF, and Stereo Vision
+%https://wiki.dfrobot.com/brief_analysis_of_camera_principles，介绍了各种深度相机的优缺点
+%https://hackernoon.com/3-common-types-of-3d-sensors-stereo-structured-light-and-tof-194033f0
 \subsection{结构光相机}
-
+Microsoft Kinect V1、Orbbec Astra
+\subsubsection{单目结构光相机}
+根据论文\cite{xu2022depth}，单目结构光相机如Kinect组成如图\ref{fig:mono_structured_light}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/strcutured_light/mono_structured_light}
+	\caption{单目结构光相机原理}
+	\label{fig:mono_structured_light}
+\end{figure}
+其深度计算公式为，
+\begin{equation}
+	Z_m=\frac{Z_{r e f}}{1-\frac{Z_{r e f} d_m}{B_m f_m}}
+\end{equation}
+\subsubsection{被动双目相机}
+被动双目相机如Zed
+\subsubsection{主动双目结构光相机}
+主动双目结构光相机如Intel的D435
 \subsection{TOF相机}
+飞行时间时测距(ToF：Time of Flight)：指通过测量光波飞行的时间来计算距离。ToF传感器通过光源驱动芯片调制信号，调制信号控制激光发射器发射高频调制的近红外光，这些红外光被物体表面漫反射后，接收器通过发射光与接收光的相位差或者时间差来计算深度信息。根据飞行时间差的获取方法不同，分为dToF和iToF两类。
+
+\subsubsection{dToF}
+dToF(direct Time-of-Flight)即直接ToF，指直接测量光脉冲的发射和接收飞行时间差，从而计算出实际距离，如图\ref{fig:dtof_camera}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/tof/dtof}
+	\caption{tof相机原理}
+	\label{fig:dtof_camera}
+\end{figure}
+即距离为，
+\begin{equation}
+	d = \frac{c\Delta t}{2}
+\end{equation}
+\subsubsection{iToF}
+iToF(indirect Time-of-Flight)即间接ToF，指发射调制光波，通过测量反射光波的相位偏移，间接地计算发射光波和接收光波的时间差，从而计算出实际距离。根据调制方法的不同，又可以分为脉冲调制(Pulsed Modulation)和连续波调制(ContinuousWave Modulation)两种方式。
+\paragraph{脉冲调制iToF}\mbox{} \\
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/tof/pl_itof}
+	\caption{脉冲调制光波itof原理计算相位差}
+	\label{fig:pl-itof}
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/tof/pl_itof_logic}
+	\caption{脉冲调制光波itof原理计算相位差}
+	\label{fig:pl-itof-logic}
+\end{figure}
+%https://blog.csdn.net/flow_specter/article/details/122730446
+发射光波的脉冲宽度为$T_0$，相位时延为$T_d$，则收到的光子数满足
+\begin{equation}
+	\begin{aligned}
+		C_0 - C_b &= K(T_0 - T_d) \\
+		C_1 - C_b & = KT_d
+	\end{aligned}
+\end{equation}
+消去$K$有,
+\begin{equation}
+	\begin{aligned}
+		& C_0 - C_b = \frac{C_1 - C_b}{T_d}(T_0 - T_d) \\
+		& \Rightarrow T_d(C_0 - C_b) = (C_1 - C_b)(T_0 - T_d) \\
+		& \Rightarrow T_d\left((C_0 - C_b) + (C_1 - C_b)\right) = (C_1 - C_b)T_0 \\
+		& \Rightarrow T_d = \frac{(C_1 - C_b)T_0}{C_0 + C_1 - 2C_b}
+	\end{aligned}
+\end{equation}
+则距离为，
+\begin{equation}
+	\begin{aligned}
+		d = \frac{cT_d}{2} = \frac{cT_0(C_1 - C_b)}{C_0 + C_1 - 2C_b}
+	\end{aligned}
+\end{equation}
+\paragraph{连续波调制iToF}\mbox{} \\
+如图\ref{fig:itof_camera}所示。
+%Microsoft Azure Kinect、 ASUS Xtion 2
+%参考<Time-of-Flight and Kinect Imaging>
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/tof/tof}
+	\caption{tof相机原理}
+	\label{fig:itof_camera}
+\end{figure}
+发射端正弦信号为，
+\begin{equation}
+	g(t)=\cos (\omega t)
+\end{equation}
+信号被物体反射，并被接收机接到，
+\begin{equation}
+	s(t)=b+a \cos (\omega t+\phi)
+\end{equation}
+接收信号与发射信号做互相关，
+\begin{equation}
+	\begin{aligned}
+		c(\tau) &=s * g=\int_{-\infty}^{\infty} s(t) \cdot g(t+\tau) d t \\
+		&= \int_{-\infty}^{\infty} \left(b+a \cos (\omega t+\phi)\right) \cdot \cos\left(\omega(t+\tau)\right) d t \\
+		&\xlongequal{\text{公式}(\ref{equ:cross-product-cp})} \int_{0}^{T} \left(b+a \cos (\omega t+\phi)\right) \cdot \cos\left(\omega(t+\tau)\right) d t \\
+		&\xlongequal{\text{公式}(\ref{equ:product2sum})} \int_{0}^{T} \left(b\cos\left(\omega(t+\tau)\right) + \frac{a}{2}\left[\cos (2\omega t + \phi + \omega\tau) + \cos\left(\phi - \omega\tau\right) \right]  \right)d t \\
+		&\xlongequal{\text{公式}(\ref{equ:integrate_cos})}\frac{b}{\omega}\sin \left(\omega(t+\tau)\right)\big|_{0}^{T} + \frac{a}{4\omega}\sin (2\omega t + \phi + \omega\tau)\big|_{0}^{T}\\
+		&\xlongequal{T=\frac{1}{\omega}} \frac{b}{\omega}\left(\sin \left(1 + \omega\tau \right)- \sin \left(\omega\tau\right) \right) + \frac{a}{4\omega}\left(\sin (2 + \phi + \omega\tau) - \sin (\phi + \omega\tau)  \right)\\
+		&\xlongequal{\text{公式}(\ref{equ:sum2product})}\frac{b}{\omega}2\cos\frac{2\omega\tau+1}{2} \sin \frac{1}{2} + \frac{a}{2\omega}\left( \cos(1 + \phi + \omega\tau) \sin(1)\right)\\%todo:false?
+		&= \frac{a}{2} \cos (\omega \tau+\phi)+b
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $b$是固定偏置
+	\item $a$是幅度
+	\item $\phi$是相移
+	\item $\tau$是内部偏移
+\end{itemize}
+%%https://zhuanlan.zhihu.com/p/648858398
+%https://blog.csdn.net/flow_specter/article/details/122730446
+对$c(\tau)$进行四次连续等间隔为$\frac{\pi}{2}$采样，
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/tof/cw_itof}
+	\caption{连续光波itof原理计算相位差}
+	\label{fig:cw-itof}
+\end{figure}
+即，
+\begin{equation}
+	A_i=c(i \cdot \pi / 2), \quad i=0, \ldots, 3
+\end{equation}
+即，
+\begin{equation}
+	\begin{aligned}
+		& A_0=a\sin(0+\phi) + b = a\sin(\phi) + b\\
+		& A_1=a\sin(\frac{\pi}{2}+\phi) + b = a\cos(\phi) + b\\
+		& A_2=a\sin(\pi+\phi) + b = -a\sin(\phi) + b\\
+		& A_3=a\sin(\frac{3\pi}{2}+\phi) + b = -a\cos(\phi) + b\\
+	\end{aligned}
+\end{equation}
+即相移和振幅，
+\begin{equation}
+	\begin{aligned}
+		& \phi = \arctan\left(\frac{2a\sin(\phi)}{2a\cos(\phi)}\right) =\arctan\left(\frac{A_0-A_2}{ A_1-A_3}\right) \\
+		& a= \frac{\sqrt{\left(2a\sin(\phi)\right)^2 + \left(2a\cos(\phi)\right)^2}}{2} =  \frac{\sqrt{\left(A_0-A_2\right)^2+\left(A_1-A_3\right)^2}}{2}
+	\end{aligned}
+\end{equation}
+则距离为，
+\begin{equation}
+	d=\frac{c}{4 \pi \omega} \phi
+\end{equation}
+

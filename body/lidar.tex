@@ -1,11 +1,313 @@
-\section{雷达}
-
+\section{激光雷达}
+%https://zhuanlan.zhihu.com/p/450508034
+%https://www.zhihu.com/question/452983786，科普
+Lidar(Light Detection and Ranging)
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/lidar/lidar_model}
+	\caption{激光雷达测距原理}
+	\label{fig:lidar}
+\end{figure}
 \subsection{激光雷达}
-
+%https://mp.weixin.qq.com/s?__biz=MzkzNjQ0NDMyMg==&mid=2247483738&idx=1&sn=18a945bf534dcb61fa7b309b687a7e27&chksm=c29fe997f5e8608117e314616a05daf28751b6a2caa5426802132bdba93f366083f77d83b0db&token=1440854923&lang=zh_CN#rd
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/lidar/lidar_system}
+	\caption{激光雷达工作原理}
+	\label{fig:lidar-system}
+\end{figure}
+一个激光雷达模组主要以下部件组成：
+\begin{itemize}
+	\item 转镜或者MEMS振镜：光路反射
+	\item 激光发射器：主动发射红外光源
+	\item 镜头：接收转镜反射的激光，过滤杂光
+%	\item FPGA信号处理器：信号处理以及雷达控制
+%	\item dToF Sensor，内部主要器件单光子雪崩二极管(Single Photon Avalanche Diode, SPAD)和时间数字转换器(Time to Digital Convert, TDC)
+%	\item 
+\end{itemize}
+% https://www.zhihu.com/question/452983786
+根据扫描方式的不同，激光雷达主要分为一下三类：机械式激光雷达、混合固态激光雷达和固态激光雷达。其中，混合固态激光雷达细分为棱镜激光雷达和MEMS激光雷达，固态激光雷达细分为相控阵(Optical Phased Array, OPA)激光雷达和Flash激光雷达，如表格\ref{tab:lidar-types-compare}所示。
+%https://www.hangyan.co/charts/3292145519580678143
+%https://www.hkexnews.hk/listedco/listconews/sehk/2023/1227/2023122700028_c.pdf, pg:101
+%http://www.wrdrive.com/special/show.php?itemid=7
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/lidar-types-com}
+	\caption{激光雷达分类}
+	\label{tab:lidar-types-compare}
+\end{figure}
+%https://medias.yolegroup.com/uploads/2023/12/automotive-lidar_boulay_yole_intelligence_v2.pdf
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/lidar-manufacturers}
+	\caption{不同激光雷达厂家对比}
+	\label{fig:lidar-manufacturers}
+\end{figure}
+不同类型的激光雷达优缺点对比如表格\ref{fig:lidar-compare}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/lidar_compare}
+	\caption{激光雷达分类及优缺点对比}
+	\label{fig:lidar-compare}
+\end{figure}
+不同类型的激光雷达原理如图\ref{fig:princeple-lidars}所示\cite{li2020lidar}。
+%https://www.smartautoclub.com/p/49191/, rotating-mirror
+%https://www.optkt.com/t/2199, prism
+%https://www.cnblogs.com/autodriver/p/18095297, taxonomy
+\begin{figure}
+	\centering
+	\begin{minipage}{0.5\linewidth}
+		\centering
+		\subfigure[机械式激光雷达]{\includegraphics[width=0.35\paperwidth]{figure/lidar/mech-lidar}}
+		\label{fig:mech-lidar}
+	\end{minipage}%\qquad
+	\begin{minipage}{0.5\linewidth}
+		\centering
+		\subfigure[MEMS激光雷达]{\includegraphics[width=0.35\paperwidth]{figure/lidar/mems-lidar}}
+		\label{fig:mems-lidar}
+	\end{minipage}
+	\begin{minipage}{0.5\linewidth}
+		\centering
+		\subfigure[二维转镜激光雷达]{\includegraphics[width=0.35\paperwidth]{figure/lidar/rotating-mirror}}
+		\label{fig:rotating-mirror-lidar}
+	\end{minipage}
+	\begin{minipage}{0.5\linewidth}
+		\centering
+		\subfigure[棱镜激光雷达]{\includegraphics[width=0.35\paperwidth]{figure/lidar/rotating-prism}}
+		\label{fig:rotating-prism-lidar}
+	\end{minipage}
+	\begin{minipage}{0.5\linewidth}
+		\centering
+		\subfigure[Flash激光雷达]{\includegraphics[width=0.35\paperwidth]{figure/lidar/flash-lidar}}
+		\label{fig:flash-lidar}
+	\end{minipage}%\qquad
+	\begin{minipage}{0.5\linewidth}
+		\centering
+		\subfigure[OPA激光雷达]{\includegraphics[width=0.35\paperwidth]{figure/lidar/opa-lidar}}
+		\label{fig:opa-lidar}
+	\end{minipage}
+	\caption{不同扫描方式的激光雷达原理}
+	\label{fig:princeple-lidars}
+\end{figure}
+%https://zhuanlan.zhihu.com/p/450508034
 \subsubsection{机械式激光雷达}
-
+机械式激光雷达是市场上最早出现的成熟的激光雷达方案，但是由于光学、电子以及机械结构都是旋转工作的，对机械结构件加工精度要求很高。
 \subsubsection{混合固态激光雷达}
-
+混合固态激光雷达主要有MEMS振镜式、转镜式和棱镜式三种方案。
+%livox
+%https://quantekk.github.io/%E5%B7%A5%E7%A8%8B%E6%8A%80%E6%9C%AF/%E5%A4%A7%E7%96%86%E7%9A%84%E6%BF%80%E5%85%89%E9%9B%B7%E8%BE%BE%E5%8E%9F%E7%90%86
 \subsubsection{固态激光雷达}
+固态激光雷达主要有Flash和OPA两种方案。
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{激光雷达测量}
+假设$t_k$时刻得到的第$k$帧在雷达坐标系$\mathcal{L}$的点云$\mathbf{p}_n \in \mathbb{P}_k, n = 1,2,\cdots, N$，对于纯固态激光雷达，每个$\mathbf{p}_n$点云的时间戳一致；对于非纯固态激光雷达，每个$\mathbf{p}_n$点云有单独的时间戳$t_k^n$，需要通过运动畸变矫正(章节\ref{chp:lidar-motion-correction})来将每个点云同步到统一的时间戳$t_k$。激光雷达测量由于不是稠密的，即相同的物理世界的点无法保证被重复扫描到。因此，构建测量模型时，一般需要根据点云提取出环境中的线特征或者面特征，然后利用点-线距离或者点-面距离构建测量误差模型。根据是否需要对每帧点云进行抽象得到更高阶的特征如线特征、面特征，激光雷达测量分为间接测量和直接测量两大类。
+\subsubsection{间接测量}
+间接测量指从一帧点云$\mathbb{P}_k$中，提取出线特征或者面特性。
+\paragraph{利用几何信息}\mbox{} \\
+论文\cite{zhang2014loam}提出一种线特征提取方法，具体地，定义如下局部平面平滑度指标，
+\begin{equation}\label{equ:pointcloud-geometry-smoothness}
+	g_s = \frac{1}{|\mathbb{P}_k||{^\mathcal{L}}\mathbf{p}_i|}\left\|\sum_{j\in \mathbb{P}_k,i\neq j}({^\mathcal{L}}\mathbf{p}_i - {^\mathcal{L}}\mathbf{p}_j) \right\|
+\end{equation}
+对$g_s$大于预设的阈值的点云即可判定为边缘上的点，相反，对$g_s$小于预设的阈值的点云即可判定为平面点。
+\paragraph{利用材料反射信息}\mbox{} \\
+有些激光雷达还能得到每个点云的反射强度信息$r_i$。因此除了几何信息，论文\cite{lin2020loam}提出一种点云反射强度的特征提取方法，具体地，定义局部反射强度平滑度指标，
+\begin{equation}\label{equ:pointcloud-reflectivity-smoothness}
+	r_s = \frac{1}{|\mathbb{N}_k^i|}\left\|\sum_{j\in \mathbb{N}_k^i,i\neq j}(r_i - r_j) \right\|
+\end{equation}
+对$r_s$大于预设的阈值的点云即可判定为边缘上的点，相反，对$r_s$小于预设的阈值的点云即可判定为平面点。作为几何信息的补充，反射强度信息能够应对某些几何信息退化的场景，如墙上的门窗。提取到线和面特征后，就可以用点-线距离或者点-面距离构建残差，如图\ref{fig:lidar-indirect-measurement-model}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.4\textwidth]{figure/lidar/p2l-p2p}
+	\caption{激光雷达间接测量模型}
+	\label{fig:lidar-indirect-measurement-model}
+\end{figure}
+则点到线的距离为，
+\begin{equation}
+	r_{\text{p2e}} = \frac{|\left(\mathbf{p}_w-\mathbf{p}_5\right) \times \left(\mathbf{p}_w-\mathbf{p}_1\right)|}{|\mathbf{p}_5-\mathbf{p}_1|}
+\end{equation}
+点到面的距离为，
+\begin{equation}
+	r_{\text{p2p}} = \frac{\left(\mathbf{p}_w-\mathbf{p}_1\right)^\top \left(\left(\mathbf{p}_3-\mathbf{p}_5\right) \times \left(\mathbf{p}_3-\mathbf{p}_1\right)\right)}{|\left(\mathbf{p}_3-\mathbf{p}_5\right) \times \left(\mathbf{p}_3-\mathbf{p}_1\right)|}
+\end{equation}
+\subsubsection{直接测量}
+\paragraph{利用地图}\mbox{} \\
+激光雷达的历史测量用一个数据结果如KD树保存下来，组成所谓的地图(全局地图或者局部地图)。利用已有地图来搜索新的点云所处的线或者平面，构建测量模型的时候，只需要检索和更新地图所对应线或者平面的信息(如平面法向量、线的方向向量)即可。如论文\cite{xu2022fast}提出的测量模型为，
+\begin{equation}
+	\mathbf{h}(\mathbf{x}, { ^\mathcal{L}} \mathbf{p}_j) = { ^\mathcal{W}} \mathbf{n}_j^{\top}\left({ }^\mathcal{W} \mathbf{T}_{L_k}\left({^\mathcal{L}}\mathbf{p}_j+{ }^{^\mathcal{L}} \boldsymbol{\delta}\right)-{ }^\mathcal{W} \mathbf{q}_j\right) = 0
+\end{equation}
+其中，
+\begin{itemize}
+	\item $ { ^\mathcal{W}} \mathbf{n}_j$是点云所在局部平面的法向量，由地图提供
+	\item $\mathbf{x}$是状态变量，这里指激光雷达的位姿${ }^\mathcal{W} \mathbf{T}_{L_k}$
+	\item ${ }^L \boldsymbol{\delta}$是服从高斯分布的测量噪声
+	\item ${ }^\mathcal{W} \mathbf{q}_j$是来自地图的局部平面上的匹配点
+\end{itemize}
+如图\ref{fig:lidar-direct-measurement-model1}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/direct-measurement-model1}
+	\caption{激光雷达直接测量模型}
+	\label{fig:lidar-direct-measurement-model1}
+\end{figure}
+\paragraph{利用协方差}\mbox{} \\
+假设点云是局部光滑的，论文\cite{chen2023direct}提出一种利用面-面距离\cite{segal2009generalized}的直接测量模型。具体地，假设匹配的点云$\mathbf{p}_k \in \mathbb{P}_k, \mathbf{p}_i \in \mathbb{P}_{\mathcal{M}}$，并服从高斯分布，即$\mathbf{p}_k \sim \mathcal{N}(\mathbf{\hat{p}}_k, \mathbf{C}_k), \mathbf{p}_i \sim \mathcal{N}(\mathbf{\hat{p}}_i, \mathbf{C}_i)$，则其对齐距离满足，
+\begin{equation}
+	\begin{aligned}
+		\mathbf{d}_k &\sim \mathcal{N}(\mathbf{\hat{p}}_i - \mathbf{T}\mathbf{\hat{p}}_k, \mathbf{C}_i+\mathbf{T}\mathbf{C}_k\mathbf{T}^\top) \\
+		&= \mathcal{N}(\mathbf{0}, \mathbf{C}_i+\mathbf{T}\mathbf{C}_k\mathbf{T}^\top)
+	\end{aligned}
+\end{equation}
+因此，最优的对齐位姿$\mathbf{T}$可通过最小化以下目标函数而得，
+\begin{equation}
+	\mathbf{T} = \min_{\mathbf{T}}\sum_{k} \mathbf{d}_k^\top\left( \mathbf{C}_i+\mathbf{T}\mathbf{C}_k\mathbf{T}^\top\right)^{-1}\mathbf{d}_k
+\end{equation}
+对于平面上的点，其法向上方差应该尽量小，而非法向上的方差应该足够大(方差越大测量的不确定性越大)。对于法向量为单位向量$\mathbf{e}_1$的点云，其协方差应具有以下形式，
+\begin{equation}
+	\left(\begin{array}{lll}
+		\epsilon & 0 & 0 \\
+		0 & 1 & 0 \\
+		0 & 0 & 1
+	\end{array}\right)
+\end{equation}
+其中，$0<\epsilon <1$是固定的小量。因此，对于法向量分别为$\mathbf{n}_k, \mathbf{n}_i$的点云$\mathbf{p}_k, \mathbf{p}_i$，其协方差为，
+\begin{equation}
+	\begin{aligned}
+		C_i & =\mathbf{R}_{\mathbf{n}_i} \cdot\left(\begin{array}{lll}
+			\epsilon & 0 & 0 \\
+			0 & 1 & 0 \\
+			0 & 0 & 1
+		\end{array}\right) \cdot \mathbf{R}_{\mathbf{n}_i}^T \\
+		C_k & =\mathbf{R}_{\mathbf{n}_k} \cdot\left(\begin{array}{lll}
+			\epsilon & 0 & 0 \\
+			0 & 1 & 0 \\
+			0 & 0 & 1
+		\end{array}\right) \cdot \mathbf{R}_{\mathbf{n}_k}^T
+	\end{aligned}
+\end{equation}
+其中，$\mathbf{n}_k = \mathbf{R}_{\mathbf{n}_k}\mathbf{e}_1, \mathbf{n}_i = \mathbf{R}_{\mathbf{n}_i}\mathbf{e}_1$。最小化面-面距离误差得到点云最优对齐位姿的样例如图\ref{fig:plane2plane}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/plane2plane}
+	\caption{最小化面-面距离误差得到点云最优对齐位姿}
+	\label{fig:plane2plane}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{运动畸变矫正}\label{chp:lidar-motion-correction}
+%https://www.livoxtech.com/cn/showcase/211220
+激光雷达点云运动畸变的产生本质上是一帧中每一个点云的坐标系不同。如图\ref{fig:lidar-motion-distort}所示。图\ref{fig:lidar-distort-static}中，对于在真实世界中共线的三个点$\mathbf{p}_1, \mathbf{p}_2, \mathbf{p}_3$被激光雷达依次扫描到。在激光雷达静止的情况下，测量到的这三个点依然共线。在激光雷达运动的情况下，理想的测量到的这三个点依然共线，如图\ref{fig:lidar-distort-motion}所示。然而，由于雷达实际上分别是在三个不同的姿态下对三个点进行了扫描，因此在最后得到的点云中，三个点坐标实际处于不同的坐标系，即三个点一般不再共线，如图\ref{fig:lidar-distort-line}所示。
+%\begin{figure}[H]
+%	\centering
+%	\includegraphics[width=1.0\textwidth]{figure/lidar/motion-distort}
+%	\caption{激光雷达运动畸变}
+%	\label{fig:lidar-motion-distort}
+%\end{figure}
+\begin{figure}
+	\subfigure[激光雷达静止测量]{
+		\begin{minipage}[b]{0.3\linewidth}
+			\includegraphics[width=0.25\paperwidth]{figure/lidar/lidar-distort-static}
+		\end{minipage}
+		\label{fig:lidar-distort-static}
+	}
+	\subfigure[激光雷达运动的理想测量]{	
+		\begin{minipage}[b]{0.3\linewidth}
+			\includegraphics[width=0.25\paperwidth]{figure/lidar/lidar-distort-motion}
+		\end{minipage}
+		\label{fig:lidar-distort-motion}
+	}
+	\subfigure[激光雷达运动的实际测量]{	
+		\begin{minipage}[b]{0.3\linewidth}
+			\includegraphics[width=0.25\paperwidth]{figure/lidar/lidar-distort-line}
+		\end{minipage}
+		\label{fig:lidar-distort-line}
+	}
+	\caption{激光雷达运动畸变}
+	\label{fig:lidar-motion-distort}
+\end{figure}
+%\begin{figure}
+%	\centering
+%	\begin{minipage}{0.33\linewidth}
+%		\centering
+%		\subfigure[激光雷达静止测量]{\includegraphics[width=0.25\paperwidth]{figure/lidar/lidar-distort-static}}
+%		\label{fig:lidar-distort-static}
+%	\end{minipage}%\qquad
+%	\begin{minipage}{0.33\linewidth}
+%		\centering
+%		\subfigure[激光雷达运动的理想测量]{\includegraphics[width=0.25\paperwidth]{figure/lidar/lidar-distort-motion}}
+%		\label{fig:lidar-distort-motion}
+%	\end{minipage}
+%	\begin{minipage}{0.33\linewidth}
+%		\centering
+%		\subfigure[激光雷达运动的实际测量]{\includegraphics[width=0.25\paperwidth]{figure/lidar/lidar-distort-line}}
+%		\label{fig:lidar-distort-line}
+%	\end{minipage}%\qquad
+%	\caption{激光雷达运动畸变}
+%	\label{fig:lidar-motion-distort}
+%\end{figure}
+运动畸变矫正的方法是为每一时刻的点云都用其对应的位姿来修正。在结合惯导的前提下，有恒定变加速度和角加速度的畸变矫正方法和恒定加速度和角速度的畸变矫正方法这两种方法。
+\paragraph{恒定加速度和角速度的畸变矫正方法}\mbox{}\\
+论文\cite{xu2021fast}提出一种状态反向传播的畸变矫正的方法，如图\ref{fig:back-propagate-correction}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/back-propagate-correction}
+	\caption{连续时间激光雷达运动畸变矫正}
+	\label{fig:back-propagate-correction}
+\end{figure}
+具体地，对于在时间$t_{k-1}, t_k$之间输出的一帧激光雷达点云(称作scan)，利用IMU测量基于正向传播得到每一帧IMU测量时刻对应的位姿，即，
+\begin{equation}
+	\widehat{\mathbf{x}}_{i+1}=\widehat{\mathbf{x}}_i \boxplus\left(\Delta t \mathbf{f}\left(\widehat{\mathbf{x}}_i, \mathbf{u}_i, \mathbf{0}\right)\right) ; \widehat{\mathbf{x}}_0=\overline{\mathbf{x}}_{k-1}
+\end{equation}
 
-\subsection{毫米波雷达}
+反向传播的方程为，
+\begin{equation}
+	\check{\mathbf{x}}_{j-1}=\check{\mathbf{x}}_j \boxplus\left(-\Delta t \mathbf{f}\left(\check{\mathbf{x}}_j, \mathbf{u}_j, \mathbf{0}\right)\right)
+\end{equation}
+具体地，
+\begin{equation}
+	\begin{aligned}
+		&{ }^{I_k} \check{\mathbf{p}}_{I_{j-1}}={ }^{I_k} \check{\mathbf{p}}_{I_j}-{ }^{I_k} \check{\mathbf{v}}_{I_j} \Delta t, \quad \text { s.f. }{ }^{I_k} \check{\mathbf{p}}_{I_m}=\mathbf{0} \\
+		&{ }^{I_k} \check{\mathbf{v}}_{I_{j-1}}={ }^{I_k} \check{\mathbf{v}}_{I_j}-{ }^{I_k} \check{\mathbf{R}}_{I_j}\left(\mathbf{a} \mathrm{m}_{m_{i-1}}-\widehat{\mathbf{b}}_{\mathbf{a}_k}\right) \Delta t-{ }^{I_k} \widehat{\mathbf{g}}_k \Delta t \\
+		& \text { s.f. }{ }^{I_k} \check{\mathbf{v}}_{I_m}={ }^G \widehat{\mathbf{R}}_{I_k}^T{ }^G \widehat{\mathbf{v}}_{I_k},{ }^{I_k} \widehat{\mathbf{g}}_k={ }^G \widehat{\mathbf{R}}_{I_k}^T \widehat{\mathbf{g}}_k \\
+		&{ }^{I_k} \check{\mathbf{R}}_{I_{j-1}}={ }^{I_k} \check{\mathbf{R}}_{I_j} \operatorname{Exp}\left(\left(\widehat{\mathbf{b}}_{\boldsymbol{\omega}_k}-\omega_{m_{i-1}}\right) \Delta t\right), \text { s.f. }{ }^{I_k} \mathbf{R}_{I_m}=\mathbf{I}
+	\end{aligned}
+\end{equation}
+\paragraph{恒定变加速度和角加速度的畸变矫正方法}\mbox{}\\
+论文\cite{chen2023direct}提出一种恒定变加速度和角加速度的畸变矫正方法。先用IMU测量积分得到预测位姿，然后在用解析方法得到点云对应的畸变矫正位姿，如图\ref{fig:lidar-point-correction}所示。具体地，对于$t_k$时刻收到的一帧雷达点云$\mathbb{P}_k$，其包含$N$个点云。则上一帧雷达点云的时刻$t_{k-1}$到$t_k$的时间内，对$i=1,2,\cdots M$个IMU测量进行积分，即
+\begin{equation}
+	\begin{aligned}
+		& {\mathbf{p}}_i={\mathbf{p}}_{i-1}+{\mathbf{v}}_{i-1} \Delta t_i+\frac{1}{2} {\mathbf{R}}\left({\mathbf{q}}_{i-1}\right) {\mathbf{a}}_{i-1} \Delta t_i^2+\frac{1}{6} {\mathbf{j}}_i \Delta t_i^3 \\%加速度需要减去重力？？
+		& {\mathbf{v}}_i={\mathbf{v}}_{i-1}+{\mathbf{R}}\left({\mathbf{q}}_{i-1}\right) {\mathbf{a}}_{i-1} \Delta t_i, \\
+		& {\mathbf{q}}_i={\mathbf{q}}_{i-1}+\frac{1}{2}\left({\mathbf{q}}_{i-1} \otimes {\boldsymbol{\omega}}_{i-1}\right) \Delta t_i+\frac{1}{4}\left({\mathbf{q}}_{i-1} \otimes {\boldsymbol{\alpha}}_i\right) \Delta t_i^2
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\mathbf{a}_{i-1}, \boldsymbol{\omega}_{i-1}$分别是$i-1$时刻IMU加速度和角速度测量
+	\item $\Delta t_i= t_i - t_{i-1}$，即第$i-1, i$个IMU测量之间的时间差
+	\item $\mathbf{p}_i, \mathbf{v}_i, \mathbf{q}_i$分别是$t_i$时刻的平移、速度和旋转
+	\item $\mathbf{j}_i = \frac{1}{\Delta t_i}\left(\mathbf{R}(\mathbf{q}_i)\mathbf{a}_i-\mathbf{R}(\mathbf{q}_{i-1})\mathbf{a}_{i-1}\right)$是变加速度
+	\item $\alpha_i=\frac{1}{\Delta t_i}(\boldsymbol{\omega}_i-\boldsymbol{\omega}_{i-1})$是角加速度 			
+\end{itemize}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/point-correction}
+	\caption{激光雷达运动畸变矫正}
+	\label{fig:lidar-point-correction}
+\end{figure}
+假设时间戳为$t_k^n$的第$n$个点云$\mathbf{p}_k^n \in \mathbb{P}_k, n = 1,2,\cdots, N$的前一个和后一个IMU测量的时间分别为$t_{i-1}, t_i$，则点云$\mathbf{p}_k^n$的畸变矫正位姿为$\mathbf{T}^{\mathbb{W}*}_n = \{\mathbf{p}^*(t_k^n), \mathbf{q}^*(t_k^n)\}$，其中，
+\begin{equation}
+	\begin{aligned}
+		& {\mathbf{p}}^*(t)={\mathbf{p}}_{i-1}+{\mathbf{v}}_{i-1} t+\frac{1}{2} {\mathbf{R}}\left({\mathbf{q}}_{i-1}\right) {\boldsymbol{a}}_{i-1} t^2+\frac{1}{6} {\boldsymbol{j}}_i t^3, \\
+		& {\mathbf{q}}^*(t)={\mathbf{q}}_{i-1}+\frac{1}{2}\left({\mathbf{q}}_{i-1} \otimes {\boldsymbol{\omega}}_{i-1}\right) t+\frac{1}{4}\left({\mathbf{q}}_{i-1} \otimes {\boldsymbol{\alpha}}_i\right) t^2,
+	\end{aligned}
+\end{equation}
+需要注意的是，可能有多个点云的时间戳落在IMU测量$t_{i-1}, t_i$之间，如图\ref{fig:continue-point-correction}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/lidar/continue-point-correction}
+	\caption{连续时间激光雷达运动畸变矫正}
+	\label{fig:continue-point-correction}
+\end{figure}
+基于恒定变加速度和角加速度的畸变矫正方法一般比基于恒定加速度和角速度的畸变矫正方法好。
+
+\subsection{激光雷达与相机标定}

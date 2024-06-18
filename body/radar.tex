@@ -1,0 +1,30 @@
+\section{毫米波雷达}
+%https://github.com/ZHOUYI1023/awesome-radar-perception
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{毫米波雷达}
+%https://e.huawei.com/cn/products/wireless/microwave/asn850-radar
+%https://www.smartautoclub.com/p/8129/
+通过毫米波雷达波束获取道路交通车流、人员等目标的相对距离、速度、角度及运动方向等物理信息，对目标进行分类和追踪，具有穿透雨雪烟雾强，不受光线和光照影响，测量精度高、探测距离远的优点，具备全天候全域探测和多目标连续跟踪能力。利用高频电路产生特定调制频率(FMCW)的电磁波，并通过天线发送电磁波和接收从目标反射回来的电磁波，通过发送和接收电磁波的参数来计算目标的各个参数。可以同时对多个目标进行测距、测速以及方位测量；测速是根据多普勒效应，而方位测量（包括水平角度和垂直角度）是通过天线的阵列方式来实现的。根据辐射电磁波方式不同，毫米波雷达主要有脉冲体制以及连续波体制两种工作体制。其中连续波又可以分为FSK(频移键控)、PSK(相移键控)、CW(恒频连续波)、FMCW(调频连续波)等方式，如表格\ref{tab:radar-compare}所示。
+%http://www.ait-prime.com/index.php?c=show&id=119
+不同类型的毫米波雷达优缺点对比如表格\ref{fig:lidar-compare}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/radar/radar-types}
+	\caption{毫米波雷达分类及优缺点对比}
+	\label{tab:radar-compare}
+\end{figure}
+测距：通过给目标连续发送毫米波信号，然后用传感器接收从物体返回的毫米波，通过探测毫米波的飞行（往返）时间来得到目标物距离。测速：根据多普勒效应，通过计算返回接收天线的雷达波的频率变化就可以得到目标相对于雷达的运动速度，简单地说就是相对速度正比于频率变化量。测方位角：通过并列的接收天线收到同一目标反射的雷达波的相位差计算得到目标的方位角。
+\subsubsection{3D毫米波雷达}
+其信号天线只在二维方向上排布，因此其对目标的探测只有二维水平坐标（x,y)，没有高度信息(z)；再加上通过多普勒效应探测到的物体速度信息。输出量即为：X / Y/ V
+\subsubsection{4D毫米波雷达}
+水平与垂直方向上，都布置了天线，因此能够额外实现对物体高度的探测，谓之4D；输出量：输出X、Y、Z坐标和速度矢量。可以检测不同高度，不同水平面上的运动物体。
+
+\subsubsection{毫米波雷达测量}
+%https://www.ti.com/cn/lit/wp/zhcy075/zhcy075.pdf?ts=1718072109220&ref_url=https%253A%252F%252Fwww.google.com.hk%252F
+\paragraph{位置测量}\mbox{}\\
+\paragraph{速度测量}\mbox{}\\
+\paragraph{方向测量}\mbox{}\\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsection{毫米波雷达与相机标定}

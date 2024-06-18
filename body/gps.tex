@@ -1,1 +1,285 @@
-\section{GPS}
+\section{GNSS}
+全球导航卫星系统(Global Navigation Satellite System，简称GNSS)由三部分构成：GPS卫星星座(空间部分)，地面监控系统(地面控制部分)，GPS信号接收机(用户设备部分)，如图\ref{fig:gps-system}所示。全球主要有4个卫星导航系统：美国的GPS、俄罗斯的格洛纳斯(GLONASS)、欧洲的伽利略(Galileo)和中国的北斗(BeiDou)。每个GNSS系统中的导航卫星连续不断地广播无线电信号，接收机可以唯一地识别这些信号卫星并接收导航信息。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/gps/gps_system}
+	\caption{全球导航卫星系统。由卫星、地面监控系统和信号接收机组成}
+	\label{fig:gps-system}
+\end{figure}
+\subsection{GPS}
+以GPS L1C信号为例，参考论文\cite{cao2022gvins}，接收机收到的信号包含三层信息，卫星传输的信号如图\ref{fig:gps-signal}所示。导航
+信息中包含轨道参数，钟差、电离层延迟系数和其他与卫星状态有关的信息。轨道参数，也称为星历表，包含14个变量并可用于计算卫星在特定时刻的ECEF坐标。卫星的钟差建模成二阶多项式。每颗卫星都被分配一个唯一的伪随机噪声(PRN)码。导航信息首先与卫星特定的PRN编码混合，然后用高频载波信号调制。接收机接收到信号后，通过反解调得到导航信息，进而得到多普勒频移测量和代码伪距测量。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/gps/gps_signal}
+	\caption{GPS L1C信号的构成过程。导航信息首先与卫星特定的PRN编码混合，然后用高频载波信号调制，最后的信号由卫星发送并由接收机捕获，接收机通过逆过程来解析导航消息}
+	\label{fig:gps-signal}
+\end{figure}
+定义如下与GPS相关的坐标系统，如图\ref{fig:gps-cordinates}所示
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/gps/gps_cordinates}
+	\caption{GPS相关坐标系定义。$(\cdot)^E$表示ECEF坐标系，$(\cdot)^N$表示ENU坐标系}
+	\label{fig:gps-cordinates}
+\end{figure}
+其中，
+\begin{itemize}
+	\item Earth-centered, Earth-fixed(ECEF)坐标系。该坐标系以地球重心为坐标系原点，XY平面位于赤道平面内，其中X轴穿过本初子午线。ECEF坐标系会随着自转而改变。特别地，$E_0$表示接收机收到第一帧GPS信号时对应的ECEF坐标系。
+	\item East-North-Up(ENU)坐标系。该坐标系X、Y、Z轴分别指向正东、正北以及连接地球重心与当前位置向天空的方向，即Z轴重力对齐。
+%	\item Earth-centered inertial(ECI)坐标系。该坐标系以地球重心为坐标系原点，其方向相对于星体固定。
+\end{itemize}
+%ref:http://www.beidou.gov.cn/zy/kpyd/201710/t20171011_4567.html
+\subsubsection{伪距测量}
+接收机接收到卫星信号后，信号的飞行时间(Time-of-Flight，ToF)可以从PRN码偏移计算而得。ToF乘以光速就获得编码伪距测量。所谓“伪距”是指它不仅包含卫星和接收机之间的几何距离，还包含在信号的产生、传播和处理过程中中的各种误差。GPS信号传播过程如图\ref{fig:gps-propagation}所示，
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/gps/gps_propagation}
+	\caption{GPS卫星信号传播过程。卫星信号依次经过电离层、中间层、平流层和对流层后到达接收机。其中，忽略中间层和平流层对信号的影响。此外，电离层对信号的反射折射、对流层对信号的散射或者高山、建筑对信号的反射等会造成信号的多径传播}
+	\label{fig:gps-propagation}
+\end{figure}
+真空中，在卫星$k$与接收机$u$相对静止的前提下，其距离有如下关系式，
+\begin{equation}
+		{^{E_0}}p^{r,s}= \left\|{^{E_0}}\mathbf{p}^s-{^{E_0}}\mathbf{p}^r\right\|=c\left( t^r_g - t^s_g\right) 
+\end{equation}
+其中，
+\begin{itemize}
+	\item ${^{E_0}}\mathbf{p}^s, {^{E_0}}\mathbf{p}^r$分别表示卫星和接收机在$E_0$坐标系的位置
+	\item 卫星在时刻$t^s_g$发送信号，接收机在$t^r_g$时刻收到
+	\item $c$是光速
+\end{itemize}
+进一步地，假设卫星时钟和接收机时钟均存在误差，则距离变为，
+\begin{equation}
+	{^{E_0}}p^{r,s}= \left\|{^{E_0}}\mathbf{p}^s-{^{E_0}}\mathbf{p}^r\right\|+c\left( b^r_t - \Delta t^s\right)=c\left( t^r - t^s\right) 
+\end{equation}
+其中，
+\begin{itemize}
+	\item $b^r_t$是接收机的时钟偏置，即接收机时钟$t_r$与标准时钟$t_g$的关系为$t^r = t^r_g + b^r_t$
+	\item $\Delta t^s$是卫星的钟差，即卫星时钟$t_s$与标准时钟$t_g$的关系为$t^s = t^s_g + \Delta t^s$。卫星的钟差有多种建模方式，如二阶多项式模型，$\Delta t^s = a_0 + a_1(t_s - t_0) + a_2(t_s - t_0)^2 + \epsilon$，其中$t_0$是参考时钟，$\epsilon$是随机误差(相对论效应矫正项)
+\end{itemize}
+最后，考虑大气层、多径效应以及测量噪声的影响，伪距测量公式为，
+%\begin{equation}
+%	\begin{aligned}
+%		{^{E_0}}p^{r,s}= & \left\|{^{E_0}}\mathbf{p}^s-{^{E_0}}\mathbf{p}^r\right\|+c\left( b^r_t-\Delta t^s\right) \\
+%		& +T^{s,r}+I^{s,r}+M^{s,r}+\epsilon^{s,r}
+%	\end{aligned}
+%\end{equation}
+\begin{equation}\label{equ:pesudorange-measurement}
+	\begin{aligned}
+		\rho_{u, m}^k= & \left(\mathbf{d}_u^k\right)^\top \left(\mathbf{p}_u-\mathbf{p}^k\right)+c\left(\delta \tau_u-\delta \tau^k\right)+m_{\mathrm{T}}\left(\theta_u^k\right) T_{\mathrm{z}, u}+q_{1 m}^2 I_u^k \\
+		& +b_{u, m}-b_m^k+\Delta \rho_{\mathrm{MP}, u, m}^k+\eta_{u, m}^k
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $T^{s,r}, I^{s,r}$分别是对流层和电离层导致的时延对应的光速距离(即时延乘以光速)
+	\item $M^{s,r}$是多径效应导致的时延对应的光速距离(即时延乘以光速)。多径效应会导致型号的衰减和相移，进而导致时延
+	\item $\epsilon^{s,r}$是测量的高斯噪声
+	\item $b_{u, m}$是接收机编码偏置
+	\item $b_m^k$是卫星$k$的编码偏置
+\end{itemize}
+伪距测量一般误差比较大。
+\subsubsection{载波相位测量}
+类似地，载波相位差测量形式如下，
+\begin{equation}
+	\begin{aligned}
+		\lambda_m \varphi_{u, m}^k= & \left(\mathbf{d}_u^k\right)^\top \left(\mathbf{p}_u-\mathbf{p}^k\right)+c\left(\delta \tau_u-\delta \tau^k\right)+m_{\mathrm{T}}\left(\theta_u^k\right) T_{z, u}-q_{1 m}^2 I_u^k \\
+		& +\lambda_m N_{u, m}^k+\beta_{u, m}-\beta_m^k+\lambda_m \Delta \varphi_{\mathrm{MP}, u, m}^k+\varepsilon_{u, m}^k
+	\end{aligned}
+\end{equation}
+
+\subsubsection{多普勒频移测量}
+由于卫星和接收机之间存在相对运动，接收机收到的信号频率$f_r$与卫星发射的信号频率$f_s$之差称为多普勒频移，如图\ref{fig:gps-doppler-shift}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/gps/doppler_shift}
+	\caption{GPS卫星信号多多普勒效应导致的频移。由于卫星和接收机之间存在相对运动(运动速度不同)，接收机收到卫星信号频率与卫星发射的信号频率不同}
+	\label{fig:gps-doppler-shift}
+\end{figure}
+在三维空间中，电磁波的多普勒频移计算公式为，
+\begin{equation}
+	\begin{aligned}
+		\Delta f^{s,r}= f_r - f_s &= f\left(1-\frac{\mathbf{d}^{r,s} \cdot \left({^{E_0}}\mathbf{v}^s-{^{E_0}}\mathbf{v}^r\right) }{c}\right) - f \\
+		&= -\frac{f}{c}\mathbf{d}^{r,s} \cdot \left({^{E_0}}\mathbf{v}^s-{^{E_0}}\mathbf{v}^r\right) \\
+		&= -\frac{1}{\lambda}{\mathbf{d}^{r,s}}^\top \left({^{E_0}}\mathbf{v}^s-{^{E_0}}\mathbf{v}^r\right)
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $f$是载波频率，$\lambda$是其波长，$c$是光速常量
+	\item $\mathbf{d}^{r,s}$是接收机指向卫星的方向向量
+	\item ${^{E_0}}\mathbf{v}^s, {^{E_0}}\mathbf{v}^r$分别表示卫星和接收机在$E_0$坐标系的速度
+\end{itemize}
+%ref: https://baike.baidu.com/item/%E5%A4%9A%E6%99%AE%E5%8B%92%E9%A2%91%E7%A7%BB/2585005
+进一步地，考虑到接收机时钟漂移、卫星的钟差导致的频移为，
+%\begin{equation}
+%	\begin{aligned}
+%		\Delta f &= \frac{1}{2\pi}\frac{\Delta \varphi}{(t^r_g-t^s_g)} = \frac{1}{2\pi(t^r_g-t^s_g)}\frac{2\pi\Delta l}{\lambda}  \\
+%		&= \frac{c\left( t^r_g-t^s_g\right) - c\left( t^r-t^s\right)}{\lambda(t^r_g-t^s_g)} \\
+%		&= -\frac{c\left( b^r_t - \Delta t^s\right)}{\lambda(t^r_g-t^s_g)} \\
+%		&=-\frac{c\left(\dot{b}^r_t - \dot{\Delta t}^s\right)}{\lambda}	
+%	\end{aligned}
+%\end{equation}
+\begin{equation}
+	\begin{aligned}
+		f_{\mathrm{D}, u, m}^k= & -\frac{f_m}{c}\left(\mathbf{d}_{u,k}^\top \left(\mathbf{v}_u-\mathbf{v}^k\right)+c\left(\delta \dot{\tau}_u-\delta \dot{\tau}_k\right)\right) \\
+		& +\Delta f_{\mathrm{D}, \mathrm{MP}, u, m}^k+\eta_{f_{\mathrm{D}}, u, m}^k
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\Delta \varphi$是相位差
+	\item $\Delta l$是路程差
+	\item $\dot{b}^r_t$是接收机的时钟偏置的漂移速率
+	\item $\dot{\Delta}t^s$是钟差的漂移速率，包含在卫星信息里
+\end{itemize}
+最后，考虑测量噪声，多普勒频移测量公式为，
+\begin{equation}
+	\Delta f^{s,r}=-\frac{1}{\lambda}\left[{\mathbf{d}^{r,s}}^\top \left({^{E_0}}\mathbf{v}^s-{^{E_0}}\mathbf{v}^r\right)+c\left(\dot{b}^r_t - \dot{\Delta t}^s\right)\right]+\eta^{s,r}
+\end{equation}
+其中， $\eta^{s,r}$是频移测量的高斯噪声。
+\subsection{测量修正}
+根据论文\cite{rtklibmanual},通过对大气层、对流层导致的时延建模，可以对伪距测量进行修正。
+\subsubsection{对流层模型}
+标准大气压表示为，
+\begin{equation}
+	\begin{aligned}
+		& p=1013.25 \times\left(1-2.2557 \times 10^{-5} h\right)^{5.2568} \\
+		& T=15.0-6.5 \times 10^{-3} h+273.15 \\
+		& e=6.108 \times \exp \left\{\frac{17.15 T-4684.0}{T-38.45}\right\} \times \frac{h_{r e l}}{100}
+	\end{aligned}
+\end{equation}
+其中,
+\begin{itemize}
+	\item $p$是压强，单位为hPa
+	\item $T$是空气的绝对温度，单位为K
+	\item $h$是海拔，单位为m
+	\item $e$是水蒸气的分压，单位为hPa
+	\item $h_{r e l}$是相对湿度
+\end{itemize}
+利用标准大气压，对流层时延建模(Saastamoinen模型\cite{saastamoinen1972contributions})为，
+%与https://www.icao.int/SAM/Documents/2008/IONOSFERASEMINAR/Tropospheric%20Effect%20on%20GNSS.pdf有所差别
+\begin{equation}\label{equ:troposphere-model}
+	T_r^s=\frac{0.002277}{\cos z}\left\{p+\left(\frac{1255}{T}+0.05\right) e-\tan ^2 z\right\}
+\end{equation}
+其中，$z$是天顶角，即接收机与卫星俯仰角的补角，单位为弧度。
+\subsubsection{电离层模型}
+对于单频率接收机来说，GPS或者QZSS的导航信息里包含以下电离层参数，
+\begin{equation}
+	p_{\text {ion }}=\left(\alpha_0, \alpha_1, \alpha_2, \alpha_3, \beta_0, \beta_1, \beta_2, \beta_3\right)^T
+\end{equation}
+基于这些参数，广播电离层模型\cite{rtklibmanual}或者Klobuchar模型\cite{klobuchar1987ionospheric}将电离层延迟建模为，
+\begin{equation}\label{equ:ionosphere-model}
+	\begin{aligned}
+		& \psi=0.0137 /(E l+0.11)-0.022 \\
+		& \varphi_i=\varphi+\psi \cos A z \\
+		& \lambda_i=\lambda+\psi \sin A z / \cos \varphi_i \\
+		& \varphi_m=\varphi_i+0.064 \cos \left(\lambda_i-1.617\right) \\
+		& t=4.32 \times 10^4 \lambda_i+t \\
+		& F=1.0+16.0 \times(0.53-E l)^3 \\
+		& x=2 \pi(t-50400) / \sum_{n=0}^3 \beta_n \varphi_m{ }^n \\
+		& I_r^s=\left\{\begin{array}{cc}
+			F \times 5 \times 10^{-9} & (|x|>1.57) \\
+			F \times\left(5 \times 10^{-9}+\sum_{n=1}^4 \alpha_n \varphi_m{ }^n \times\left(1-\frac{x^2}{2}+\frac{x^4}{24}\right)\right) & (|x| \leq 1.57)
+		\end{array}\right.
+	\end{aligned}
+\end{equation}
+\subsection{单GPS定位}
+\subsubsection{SPP算法}
+同一时刻，通过利用多颗卫星的测量，可以估计接收机的位置、速度、钟偏和钟漂，即单点定位( single‐point positioning SPP)，如图\ref{fig:gps-spp}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{figure/gps/spp}
+	\caption{多卫星单点定位}
+	\label{fig:gps-spp}
+\end{figure}
+\paragraph{伪距测量估计接收机位置和钟偏}\mbox{} \\
+同一时刻，通过利用多颗卫星的伪距测量，即在不考虑卫星与接收机编码偏置、多径效应和测量噪声的前提下，同时收到多个卫星的伪距测量简化为，
+\begin{equation}\label{equ:pesudorange-measurement-corrected}
+	\begin{aligned}
+		\mathbf{z}_{\rho} = \left[\begin{array}{c}
+			\rho_{u, m}^0 \\ \rho_{u, m}^1 \\ \cdots \\ \rho_{u, m}^k 
+		\end{array}\right]
+		=
+		\left[\begin{array}{c}
+			\mathbf{d}^\top_{u,0} \left(\mathbf{p}_u-\mathbf{p}_0\right)+c\left(\delta \tau_u-\delta \tau_0\right)+T_u^0+I_u^0 \\ 
+			\mathbf{d}^\top_{u,1} \left(\mathbf{p}_u-\mathbf{p}_1\right)+c\left(\delta \tau_u-\delta \tau_1\right)+T_u^1+I_u^1 \\
+			\cdots \\ 
+			\mathbf{d}^\top_{u,k} \left(\mathbf{p}_u-\mathbf{p}_k\right)+c\left(\delta \tau_u-\delta \tau_k\right)+T_u^k+I_u^k
+		\end{array}\right] 
+		= \mathbf{h}_{\rho}(\mathbf{p}_u, \delta \tau_u)
+%		\rho_{u, m}^0 &= \mathbf{d}^\top_{u,0} \left(\mathbf{p}_u-\mathbf{p}_0\right)+c\left(\delta \tau_u-\delta \tau_0\right)+T_u^0+I_u^0 \\
+%		\rho_{u, m}^1 &= \mathbf{d}^\top_{u,1} \left(\mathbf{p}_u-\mathbf{p}_1\right)+c\left(\delta \tau_u-\delta \tau_1\right)+T_u^1+I_u^1 \\
+%		\cdots \\
+%		\rho_{u, m}^k &= \mathbf{d}^\top_{u,k} \left(\mathbf{p}_u-\mathbf{p}_k\right)+c\left(\delta \tau_u-\delta \tau_k\right)+T_u^k+I_u^k \\
+	\end{aligned}
+\end{equation}
+%即公式(\ref{equ:pesudorange-measurement-corrected})可以写成$\mathbf{z} = \mathbf{h}(\mathbf{p}_u, \delta \tau_u)$的形式。
+其中，伪距$\rho_{u, m}^k$已知。卫星位置$\mathbf{p}_k$和卫星时钟偏置$\delta \tau_k$可以从星历数据中计算而得。$T_u^k, I_u^k$分别通过对流层模型(\ref{equ:troposphere-model})和电离层模型(\ref{equ:ionosphere-model})计算而得。问题(\ref{equ:pesudorange-measurement-corrected})可以通过高斯-牛顿算法\ref{alg:gauss-newton}来求解，其雅克比为，
+\begin{equation}
+	\mathbf{J}_{\rho}=\frac{\partial \mathbf{h}_{\rho}(\mathbf{p}_u, \delta \tau_u)}{\partial \{\mathbf{p}_u, \delta \tau_u\}}
+	= 
+		\left[\begin{array}{cc}
+		\mathbf{d}^\top_{u,0}, & c \\ 
+		\mathbf{d}^\top_{u,1}, & c \\
+		\cdots \\ 
+		\mathbf{d}^\top_{u,k}, & c
+	\end{array}\right] 
+\end{equation}
+参考\cite{rtklibmanual}，其权重/信息矩阵设置为，
+\begin{equation}
+	\begin{aligned}
+		& \boldsymbol{W}_{\rho}=\operatorname{diag}\left(\sigma_0^{-2}, \sigma_1^{-2}, \ldots, \sigma_k^{-2}\right) \\
+		& \sigma_k^2=F^s R_r\left(a_\sigma^2+b_\sigma^2 / \sin E l_r^s\right)+{\sigma_{e p h}}^2+{\sigma_{\text {ion }}}^2+{\sigma_{\text {trop }}}^2+{\sigma_{\text {bias }}}^2
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $F_s$是卫星系统误差因子(1:GPS, Galileo, QZSS and BeiDou, 1.5: GLONASS, 3.0: SBAS)
+	\item $R_r$是编码与载波相位误差比例
+	\item $a_\sigma, b_\sigma$是载波相位误差因子，单位为m
+	\item $\sigma_{e p h}$是星历和时钟误差的标准偏差，可以使用URA (user range accuracy)或者类似的指标，单位为m
+	\item $\sigma_{\text {ion }}$是离层校正模型误差的标准差，单位为m
+	\item $\sigma_{\text {trop }}$是对流层校正模式误差的标准偏差，单位为m
+	\item $\sigma_{\text {bias }}$是码偏误差的标准偏差，单位为m
+\end{itemize}
+\paragraph{多普勒频移测量估计接收机速度和钟漂}\mbox{} \\
+同一时刻，通过利用多颗卫星的伪距测量，即在不考虑多径效应和测量噪声的前提下，同时收到多个卫星的多普勒频移测量简化为，
+\begin{equation}\label{equ:doppler-measurement-corrected}
+	\begin{aligned}
+		\mathbf{z}_{f} = \left[\begin{array}{c}
+			f_{\mathrm{D}, u, m}^0 \\ f_{\mathrm{D}, u, m}^1 \\ \cdots \\ f_{\mathrm{D}, u, m}^k
+		\end{array}\right]
+		=
+		\left[\begin{array}{c}
+			-\frac{f_m}{c}\left(\mathbf{d}_{u,0}^\top \left(\mathbf{v}_u-\mathbf{v}^0\right)+c\left(\delta \dot{\tau}_u-\delta \dot{\tau}_0\right)\right) \\ 
+			-\frac{f_m}{c}\left(\mathbf{d}_{u,1}^\top \left(\mathbf{v}_u-\mathbf{v}^1\right)+c\left(\delta \dot{\tau}_u-\delta \dot{\tau}_1\right)\right) \\
+			\cdots \\ 
+			-\frac{f_m}{c}\left(\mathbf{d}_{u,k}^\top \left(\mathbf{v}_u-\mathbf{v}^k\right)+c\left(\delta \dot{\tau}_u-\delta \dot{\tau}_k\right)\right)
+		\end{array}\right] 
+		= \mathbf{h}_{f}(\mathbf{v}_u, \delta \dot{\tau}_u)
+	\end{aligned}
+\end{equation}
+%\begin{equation}
+%	\begin{aligned}
+%		f_{\mathrm{D}, u, m}^k= -\frac{f_m}{c}\left(\mathbf{d}_{u,k}^\top \left(\mathbf{v}_u-\mathbf{v}^k\right)+c\left(\delta \dot{\tau}_u-\delta \dot{\tau}_k\right)\right) 
+%	\end{aligned}
+%\end{equation}
+其中，多普勒频移$f_{\mathrm{D}, u, m}^k$已知。卫星速度$\mathbf{v}^k$和卫星时钟偏漂$\dot{\tau}_k$可以从星历数据中计算而得。问题(\ref{equ:doppler-measurement-corrected})可以通过高斯-牛顿算法\ref{alg:gauss-newton}来求解，其雅克比为，
+\begin{equation}
+	\mathbf{J}_f=\frac{\partial \mathbf{h}_{f}(\mathbf{v}_u, \delta \dot{\tau}_u)}{\partial \{\mathbf{v}_u, \delta \dot{\tau}_u\}}
+	= 
+	\left[\begin{array}{cc}
+		-\frac{f_m}{c}\mathbf{d}^\top_{u,0}, & c \\ 
+		-\frac{f_m}{c}\mathbf{d}^\top_{u,1}, & c \\
+		\cdots \\ 
+		-\frac{f_m}{c}\mathbf{d}^\top_{u,k}, & c
+	\end{array}\right] 
+\end{equation}
+参考\cite{rtklibmanual}，其权重/信息矩阵设置为单位矩阵，即$\mathbf{W}_f=\mathbf{I}$，
+\subsection{RTK差分定位}
+%https://anavs.com/rtk-technology/
+RTK(Real-Time Kinematic)是一种高精度的差分GPS定位技术，它通过在接收机之间共享实时差分数据来提供亚米级甚至厘米级的定位精度。差分方法主要分为两种：载波相位差分(Carrier Phase Differential, CPD)和伪距差分(Pseudorange Differential)。CPD通常具有更高的定位精度，但需要较长的数据处理时间。PPD则具有较快的数据处理速度，但定位精度相对较低。
+
+
+
+
