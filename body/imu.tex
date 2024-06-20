@@ -137,7 +137,8 @@ calibrated模型过于简单，对于低成本的消费级IMU来说，还存在�
 %注意：这里{_B^A}\mathbf{R}与论文rehder2016extending的描述不符，即仅有一个{_B^A}\mathbf{R}，这与代码实现一致
 其中，$\mathbf{S}_{\omega}, \mathbf{M}_{\omega}$分别表示陀螺仪尺度因子和轴偏的矩阵，其定义与形式与加速度计一致。$\mathbf{A}_{\omega}$用来建模加速度导致的角速度偏移(g-sensitivity)，一般是满填充矩阵。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\noindent\textbf{scale-misalignment-size-effect模型}\\
+\paragraph{scale-misalignment-size-effect模型}\mbox{} \\
+%\noindent\textbf{scale-misalignment-size-effect模型}\\
 对于高端的IMU，加速度计和陀螺仪的三轴是分立的，如图\ref{fig:acc_size_effect}所示。
 \begin{figure}[H]
 	\centering
@@ -187,6 +188,45 @@ IMU噪声标定即标定IMU的高斯噪声(\ref{equ:imu-gaussian-noise})和一�
 \end{figure}
 \subsection{独立IMU内参标定}
 %https://tianchi.aliyun.com/forum/post/77528
+%https://zhuanlan.zhihu.com/p/352539057
+%https://www.bilibili.com/read/cv18445807/
+IMU独立内参标定一般采用多面体法，如六面体法。利用定制的正方体，将IMU分别固定在不同的面上采集数据。论文\cite{tedaldi2014robust}提出一种更加通用的多面体IMU标定方法，其算法流程如图\ref{fig:imu-tk}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/imu_tk}
+	\caption{独立IMU内参标定流程}
+	\label{fig:imu-tk}
+\end{figure}
+对于加速度计，利用静止期间加速计的测量的模长与当地重力模长相等，即可构建加速度测量的优化目标函数，
+\begin{equation}\label{equ:imu-tk-acc-cost}
+	\min_{\boldsymbol{\theta}_a} \sum_{k=1}^{M}\left(||\mathbf{g}||^2-||\mathbf{h}_a(\mathbf{a}_k, \boldsymbol{\theta}_a)||^2\right)
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\mathbf{a}_k$是第$k$个静止区间加速度计测量的平均值
+	\item $\mathbf{h}_a(\cdot),\boldsymbol{\theta}_a$分别是加速度计测量的scale misalignment模型(\ref{equ:acc_scaled_mis})及其对应的参数。注意，由于静止期间没有角速度，因此无法标出scale misalignment size-effect模型(\ref{equ:acc_size_effect})中的加速度计xyz轴在本体坐标系下的平移参数$^B\mathbf{R}_{xyz}$。
+	\item $||\mathbf{g}||$是当地重力模长。利用如谷歌地图读到当地的纬度$\phi$和海拔$h$(海拔在地形图里可以近似通过等高线读取)，即可计算出当地重力模长。如利用1980版国际重力计算公式(\ref{equ:Theoretical_gravity})并进行高度修正\cite{TheoreticalGravity}，即可得到当地近似的重力模长。
+\end{itemize}
+\begin{equation}\label{equ:Theoretical_gravity}
+	||\mathbf{g}||=9.780327\left(1+5.3024\cdot 10^{-3}\sin^2(\phi) -5.8\cdot10^{-6}\sin^2(2\phi) - 3.0877\cdot10^{-6}h\right)
+\end{equation}
+%https://en.wikipedia.org/wiki/Theoretical_gravity
+典型的加速度计测量如图\ref{fig:imu-tk-acc-example}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/imu/imu_tk_acc_example}
+	\caption{独立IMU内参标定流程}
+	\label{fig:imu-tk-acc-example}
+\end{figure}
+对于陀螺仪，利用两相邻静止区间重力方向向量的变化，即可构建角速度测量的优化目标函数，
+\begin{equation}\label{equ:imu-tk-gyr-cost}
+	\min_{\boldsymbol{\theta}_{\omega}} \sum_{k=1}^{M}\left(\mathbf{u}_k - \mathbf{h}_{\omega}(\mathcal{W}_k, \mathbf{u}_{k-1} )\right)
+\end{equation}
+\begin{itemize}
+	\item $\mathbf{u}_k = \frac{\mathbf{a}_k}{||\mathbf{a}_k||}$是$k$个静止区间的重力方向向量
+	\item $\mathcal{W}_k$是$k-1$到$k$时刻之间陀螺仪的测量
+	\item $\mathbf{h}_{\omega}$是$k-1$到$k$时刻之间，陀螺仪测量的积分。其中，陀螺仪使用的是scale misalignment模型(\ref{equ:gyr_scaled_mis})，其偏置${^A}\boldsymbol{\omega}_b$可设置为静止区间陀螺仪测量的平均值，加速度测量则用上述算法(\ref{equ:imu-tk-acc-cost})进行预修正。
+\end{itemize}
 
 \subsection{IMU预积分}
 %参考《预积分总结与公式推导》
