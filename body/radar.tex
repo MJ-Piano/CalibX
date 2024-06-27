@@ -17,14 +17,109 @@
 \subsubsection{3D毫米波雷达}
 其信号天线只在二维方向上排布，因此其对目标的探测只有二维水平坐标（x,y)，没有高度信息(z)；再加上通过多普勒效应探测到的物体速度信息。输出量即为：X / Y/ V
 \subsubsection{4D毫米波雷达}
-水平与垂直方向上，都布置了天线，因此能够额外实现对物体高度的探测，谓之4D；输出量：输出X、Y、Z坐标和速度矢量。可以检测不同高度，不同水平面上的运动物体。
-
-\subsubsection{毫米波雷达测量}
-%https://www.ti.com/cn/lit/wp/zhcy075/zhcy075.pdf?ts=1718072109220&ref_url=https%253A%252F%252Fwww.google.com.hk%252F
-\paragraph{位置测量}\mbox{}\\
+通过软件或者硬件提高3D毫米波雷达的俯仰角方向的分辨率即可得到4D毫米比雷达。软件上可以利用合成孔径雷达相似的技术或者利用深度学习的超分辨率算法来实现\cite{han20234d}。硬件上的实现主要有两种方案：级联式和集成式。级联式通过级联多组标准的毫米波收发芯片(TX-RX)组成\cite{och2018scalable}，如图\ref{fig:radar-cascaded-TRXs}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/radar/cascaded-TRXs}
+	\caption{级联式4D毫米波雷达}
+	\label{fig:radar-cascaded-TRXs}
+\end{figure}
+集成式通过在一个芯片上集成更多的收发天线来实现\cite{ritter2021fully}，如图\ref{fig:radar-integrated-TRXs}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/radar/integrated-TRXs}
+	\caption{集成式4D毫米波雷达}
+	\label{fig:radar-integrated-TRXs}
+\end{figure}
+主流的4D毫米波雷达是基于连续波调频技术(Frequency Modulated Continuous Wave,   FMCW)。典型的4D毫米波雷达信号处理流程如图\ref{fig:radar-4d-workflow}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/radar/workflow4d}
+	\caption{4D毫米波雷达传统信号处理流程}
+	\label{fig:radar-4d-workflow}
+\end{figure}
+其主要包含6个步骤\cite{han20234d}即，
+\begin{itemize}
+	\item 在一帧(frame)的时间内，$N_c$个周期为$T_c$的频率线性增长的毫米波(一个周期$T_c$称作一个chirp)被发射天线(TX)发射出去
+	\item 毫米波被物体反射后，被接收天线(RX)接收到。每对发射与接收信号通过混叠器(信号相乘)后分别发送到模数转换器(ADC)
+	\item 每对发射与接收信号ADC的输出构成了一个三维的数据，以$T_c$为时间间隔作一次快速采样，得到的数据作为y轴。沿x轴方向累计$N_c$次快速采样则得到一帧的测量。每对发射与接收信号类似地沿z轴排列得到最终三维数据。注意，该三维数据的每一个值都是反射信号的强度。沿着y轴采样，能够计算得到距离信息$r$，见公式(\ref{equ:radar-range})。沿着x轴采样能够推断出速度信息$v$，见公式(\ref{equ:radar-velocity})。
+	\item 每对发射与接收信号ADC的输出经过二维快速傅里叶变换(Fast Fourier Transformation, FFT)即可得到距离与多普勒速度矩阵(Rang-Doppler, RD map)
+	\item 对RD map沿着z轴方向即不同的发射与接收信号对做一维FFT，得到距离-方位角-俯仰角-速度四维的张量(Tensor)，通过分析每对发射与接收信号的相移以及发射与接收信号对之间的位置排列，就能确定目标的方向。
+	\item 通过CFAR算法\cite{rohling1983radar}就能将测量转成目标点云
+\end{itemize}
+\paragraph{距离测量}\mbox{} \\
+距离测量的计算公式为，
+\begin{equation}\label{equ:radar-range}
+	\begin{aligned}
+		r &= \frac{c\Delta t}{2} \\
+		\Delta t &= \frac{\Delta f_r}{S} \\
+	\end{aligned}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $c$是光速
+	\item $\Delta t$是发射信号与接收信号的时间差
+	\item $\Delta f_r$是发射信号与接收信号的频率差
+	\item $S$是指一个chirp内，发射信号频率随时间变化的斜率
+%	\item $\Delta \varphi$是发射信号与接收信号的相位差
+%	\item $T_c$是发射信号频率的周期
+\end{itemize}
+%注意，为了能够在一个chirp内计算出距离信息，
 \paragraph{速度测量}\mbox{}\\
-\paragraph{方向测量}\mbox{}\\
+速度测量的计算公式为，
+\begin{equation}\label{equ:radar-velocity}
+	\begin{aligned}
+		v &= \frac{c\Delta f_v}{2f_c} \\
+		\Delta f_v &= \frac{\Delta \varphi}{2\pi T_c}
+	\end{aligned}
+\end{equation}
+\begin{itemize}
+%	\item $c$是光速
+%	\item $\Delta t$是发射信号与接收信号的时间差
+	\item $\Delta f_v$是连续两个chirp的接收信号的频率差
+%	\item $S$是发射信号频率随时间变化的斜率
+	\item $\Delta \varphi$是连续两个chirp的接收信号的相位差
+	\item $T_c$是发射信号频率的周期
+\end{itemize}
+\paragraph{方向测量}\mbox{} \\
+%todo:give detail theory
+%%https://www.ti.com/cn/lit/wp/zhcy075/zhcy075.pdf?ts=1718072109220&ref_url=https%253A%252F%252Fwww.google.com.hk%252F
+4D毫米波雷达是一个多输入多输出系统(multiple-input and multiple-output, MIMO)，其方向估计问题属于典型的DOA(direction of arrival)问题，如图\ref{fig:radar-doa}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{figure/radar/doa}
+	\caption{4D毫米波雷达DOA估计问题}
+	\label{fig:radar-doa}
+\end{figure}
+假设分别有$M, N$个发射天线和接收天线，则接收到的信号为，
+\begin{equation}\label{equ:radar-doa}
+	\mathbf{x} = \sum_{m=1}^{M}\alpha_m\mathbf{s}(\phi_m) + \mathbf{n}
+\end{equation}
+其中，
+\begin{itemize}
+	\item $\alpha_m$是第$m$个信号的权重
+	\item $\mathbf{s}(\phi)$是导向向量，即$\mathbf{s}(\phi)=\left[z^{-(N-1) / 2}, z^{-(N-3) / 2} \ldots, z^{-1}, 1, z, \ldots, z^{(N-3) / 2}, z^{(N-1) / 2}\right]^T, z=e^{jkd\cos(\phi)}$
+	\item $\phi_m$是第$m$个待估计的方向角
+	\item $\mathbf{n}$是高斯噪声
+\end{itemize}
+求解DOA问题(\ref{equ:radar-doa})著名的方法有MUSIC\cite{schmidt1986multiple}、ESPRIT\cite{roy1989esprit}、最大似然法\cite{stoica1990maximum}等。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+\subsection{毫米波测量}
+\subsubsection{3D毫米波测量}
+3D毫米波测量的输出一般是相对于毫米波传感器天线的距离$r$、速度$v$和方位角$\phi$，如图\ref{fig:radar-3d-measurement}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{figure/radar/3d-measurement}
+	\caption{3D毫米波雷达测量}
+	\label{fig:radar-3d-measurement}
+\end{figure}
+\subsubsection{4D毫米波测量}
+4D毫米波测量的输出一般是相对于毫米波传感器天线的距离$r$、速度$v$、方位角$\phi$和俯仰角$\theta$，如图\ref{fig:radar-4d-measurement}所示。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{figure/radar/4d-measurement}
+	\caption{4D毫米波雷达测量}
+	\label{fig:radar-4d-measurement}
+\end{figure}
 
 \subsection{毫米波雷达与相机标定}

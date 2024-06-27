@@ -7,6 +7,8 @@
 *.pdf
 *.synctex.gz
 *.toc
+*.bcf
+*.run.xml
 thesis_html
 tmp
 body/*.aux
